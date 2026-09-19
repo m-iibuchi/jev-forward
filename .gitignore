@@ -1,0 +1,11 @@
+# 取得データと生成物はリポジトリに入れない
+data/raw/
+data/text/
+data/state/
+data/db/
+*.db
+*.db-journal
+.env
+__pycache__/
+*.pyc
+.venv/
