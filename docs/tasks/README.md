@@ -49,7 +49,6 @@
 | 012 | [9/24以降の答え合わせを検証ログに追記](012-答え合わせの追記.md) | open | human | — |
 | 015 | [entry_rules.exit.thesis_broken_categories の意味](015-thesis_broken_categoriesの意味.md) | open | human | 11-ダイジェスト模擬執行（M7） |
 | 016 | [state v2 のネスト形状は Jev で未検証](016-state_v2のネスト形状は未検証.md) | open | human | M4 の契約テスト、事前宣言の凍結 |
-| 020 | [実装 M3 前半（セッション 3a：束ね）](020-実装M3前半.md) | open | claude | 021 |
 | 021 | [実装 M3 後半（セッション 3b：state構築・`jevfwd bundle`）](021-実装M3後半.md) | open | claude | M4 の着手、段階1の稼働 |
 
 ## 完了（`archive/`）
@@ -66,3 +65,6 @@
 | 018 | [実装 M1 前半（セッション 1a：共通規約・凍結ログ）](archive/018-実装M1前半.md) | `common/` `store/` と Docker の dev 環境。T00-01〜19・T01-01〜27 が通る | 2026-09-20 |
 | 019 | [実装 M1 後半（セッション 1b：設定・CLI）](archive/019-実装M1後半.md) | `config/*.yaml`・`settings.py`・`questions.py`・`cli.py`。T02・T03 が通る | 2026-09-20 |
 | 022 | [「基準日設定」の rank が受入テストと filters.v1.yaml で食い違う](archive/022-基準日設定のrank.md) | rank 6（訂正・事務）が正。02・04 の例示を訂正 | 2026-09-20 |
+| 020 | [実装 M3 前半（セッション 3a：束ね）](archive/020-実装M3前半.md) | `bundle/`（grouper・filters・runner）と M3 の queries。T04-01〜35 が通る | 2026-09-20 |
+| 023 | [主開示の期待値と優先順の食い違い](archive/023-主開示の期待値と優先順の食い違い.md) | `primary_priority` が正。04 の T04-11・T04-14 を訂正 | 2026-09-20 |
+| 024 | [supersede の歯止めの実装不足](archive/024-supersedeの歯止めの実装不足.md) | 04・01 を補筆、ADR 027、`bundle.stuck_margin_sec` を新設 | 2026-09-20 |

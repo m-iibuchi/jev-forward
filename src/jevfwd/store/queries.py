@@ -5,7 +5,13 @@ M3 以降に必要な読み取りは、そのマイルストーンで足す。
 """
 
 import sqlite3
-from typing import Sequence
+from datetime import timedelta
+from typing import Collection, Sequence
+
+from ..common.timeutil import parse_utc, to_utc_str
+
+# IN 句に並べる最大数（SQLite の変数上限 999 に余裕を持たせる）
+_CHUNK = 500
 
 # count_rows に渡してよいテーブル名（識別子を SQL に埋めるため許可リストにする）
 _COUNTABLE: frozenset[str] = frozenset(
@@ -91,3 +97,120 @@ def is_superseded(conn: sqlite3.Connection, bundle_id: int) -> bool:
 def question_versions(conn: sqlite3.Connection) -> Sequence[sqlite3.Row]:
     """凍結済みの問い版を version 昇順で（`freeze-questions` の確認用）。"""
     return list(conn.execute("SELECT * FROM question_versions ORDER BY version").fetchall())
+
+
+# --- M3（04-束ね・05-state構築）で追加した読み取り ---------------------------
+
+def max_event_id(conn: sqlite3.Connection) -> int:
+    """採番済みの最大 event_id。行が無ければ 0。"""
+    row = conn.execute("SELECT max(event_id) AS v FROM events").fetchone()
+    if row is None or row["v"] is None:
+        return 0
+    return int(row["v"])
+
+
+def events_after(
+    conn: sqlite3.Connection, event_id: int, limit: int
+) -> list[sqlite3.Row]:
+    """event_id より後の events を昇順で。body_text は選ばない（束ねは本文を見ない）。"""
+    return list(
+        conn.execute(
+            "SELECT event_id, code, company, title, published_at, received_at, pdf_status "
+            "FROM events WHERE event_id > ? ORDER BY event_id LIMIT ?",
+            (event_id, limit),
+        ).fetchall()
+    )
+
+
+def events_by_ids(
+    conn: sqlite3.Connection, event_ids: Collection[int]
+) -> list[sqlite3.Row]:
+    """指定した event_id の行を昇順で（既存 bundle の member を読み直すときに使う）。"""
+    found: dict[int, sqlite3.Row] = {}
+    ids = list(event_ids)
+    for start in range(0, len(ids), _CHUNK):
+        chunk = ids[start:start + _CHUNK]
+        placeholders = ", ".join("?" * len(chunk))
+        for row in conn.execute(
+            "SELECT event_id, code, company, title, published_at, received_at, pdf_status "
+            f"FROM events WHERE event_id IN ({placeholders})",
+            chunk,
+        ).fetchall():
+            found[int(row["event_id"])] = row
+    return [found[i] for i in sorted(found)]
+
+
+def event_bodies(
+    conn: sqlite3.Connection, event_ids: Sequence[int]
+) -> dict[int, str | None]:
+    """event_id -> body_text。存在しない id はキーに入らない（05-state構築 が使う）。"""
+    bodies: dict[int, str | None] = {}
+    ids = list(event_ids)
+    for start in range(0, len(ids), _CHUNK):
+        chunk = ids[start:start + _CHUNK]
+        placeholders = ", ".join("?" * len(chunk))
+        for row in conn.execute(
+            f"SELECT event_id, body_text FROM events WHERE event_id IN ({placeholders})",
+            chunk,
+        ).fetchall():
+            bodies[int(row["event_id"])] = row["body_text"]
+    return bodies
+
+
+def bundles_since(conn: sqlite3.Connection, anchor_from: str) -> list[sqlite3.Row]:
+    """anchor_published_at >= ? の bundles を bundle_id 昇順で。superseded な行も含む。"""
+    return list(
+        conn.execute(
+            "SELECT * FROM bundles WHERE anchor_published_at >= ? ORDER BY bundle_id",
+            (anchor_from,),
+        ).fetchall()
+    )
+
+
+def min_uncovered_event_id(
+    conn: sqlite3.Connection, covered: Collection[int], since: str
+) -> int | None:
+    """published_at >= since の events のうち covered に無い最小の event_id。無ければ None。"""
+    known = frozenset(covered)
+    cursor = conn.execute(
+        "SELECT event_id FROM events WHERE published_at >= ? ORDER BY event_id",
+        (since,),
+    )
+    for row in cursor:
+        event_id = int(row["event_id"])
+        if event_id not in known:
+            return event_id
+    return None
+
+
+def recent_titles(
+    conn: sqlite3.Connection, code: str, before: str, days: int
+) -> list[sqlite3.Row]:
+    """before より前（同時刻は含めない）で before - days 以降の開示を published_at 昇順で。"""
+    since = to_utc_str(parse_utc(before) - timedelta(days=days))
+    return list(
+        conn.execute(
+            "SELECT event_id, title, published_at FROM events "
+            "WHERE code = ? AND published_at < ? AND published_at >= ? "
+            "ORDER BY published_at, event_id",
+            (code, before, since),
+        ).fetchall()
+    )
+
+
+def bundles_with_full_judgment(
+    conn: sqlite3.Connection, bundle_ids: Collection[int]
+) -> frozenset[int]:
+    """purpose='full' の judgments を持つ bundle_id の集合（04-束ね 4.9-5 の歯止め）。"""
+    found: set[int] = set()
+    ids = list(bundle_ids)
+    for start in range(0, len(ids), _CHUNK):
+        chunk = ids[start:start + _CHUNK]
+        placeholders = ", ".join("?" * len(chunk))
+        for row in conn.execute(
+            f"SELECT DISTINCT bundle_id FROM judgments "
+            f"WHERE purpose = 'full' AND bundle_id IN ({placeholders})",
+            chunk,
+        ).fetchall():
+            found.add(int(row["bundle_id"]))
+    return frozenset(found)

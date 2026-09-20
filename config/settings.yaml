@@ -21,6 +21,7 @@ bundle:
   max_per_cycle: 200
   catchup_factor: 10
   poll_sec: 30
+  stuck_margin_sec: 600
 judge:
   api_base_url: https://api.typesafe.ai
   models: [jev-latest, jev-preview]
