@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/jevfwd/state.v2.schema.json",
+  "title": "jevfwd state v2",
+  "description": "Jev（TypeSafe AI）に渡す state の書式 v2。正本は本ファイル。freeze-state --version v2 で state_versions に凍結する（ADR 020）。組み立て規則と切り詰めは docs/detailed/05-state構築.md。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "issuer",
+    "published_at",
+    "market_context",
+    "forecast_context",
+    "recent_disclosures_30d",
+    "same_time_disclosures",
+    "primary",
+    "secondary",
+    "other_titles",
+    "state_version"
+  ],
+  "properties": {
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["company", "code", "market", "role"],
+      "properties": {
+        "company": {
+          "type": "string",
+          "minLength": 1,
+          "description": "市場区分の接頭辞（Ｐ－ Ｓ－ Ｇ－）を剥がした社名"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[0-9A-Z]{4,5}$",
+          "description": "表示用の証券コード（common.codes.display_code）。DB の5文字ではない"
+        },
+        "market": {
+          "type": ["string", "null"],
+          "description": "東証プライム / 東証スタンダード / 東証グロース 等。取れなければ null"
+        },
+        "role": {
+          "type": "string",
+          "const": "発行者",
+          "description": "判定対象はこの開示の発行者自身（ADR 002）"
+        }
+      }
+    },
+    "published_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\+09:00$",
+      "description": "束ねのアンカーの公表時刻。state の中だけ JST 表記（DB は UTC。00-共通規約 3章）"
+    },
+    "market_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prev_close", "market_cap_jpy", "return_20d_vs_topix", "avg_turnover_20d_jpy"],
+      "description": "market_cache（ADR 017）由来。段階1では全項目 null。オブジェクト自体は必ず置く（欠損の有無で形が変わらないようにする）",
+      "properties": {
+        "prev_close": {"type": ["number", "null"], "description": "公表時点で確定している直近の終値"},
+        "market_cap_jpy": {"type": ["number", "null"]},
+        "return_20d_vs_topix": {"type": ["number", "null"]},
+        "avg_turnover_20d_jpy": {"type": ["number", "null"]}
+      }
+    },
+    "forecast_context": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "前回予想・前期実績（要件 F2-3、task 005）。XBRL が無ければ null",
+      "properties": {
+        "prior_forecast": {"type": ["object", "null"]},
+        "prev_year_actual": {"type": ["object", "null"]}
+      }
+    },
+    "recent_disclosures_30d": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "同一銘柄の直近30日の表題。公表時刻が anchor より厳密に前のものだけ（先読み防止）"
+    },
+    "same_time_disclosures": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "同じ bundle の、主開示以外の論理開示の表題"
+    },
+    "primary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "body": {"type": "string", "description": "本文。連番の論理開示は連結済み。切り詰められていることがある"},
+        "excerpts": {
+          "type": "array",
+          "description": "報告書型の本文から抜いた章の冒頭（要件 F2-4）。body を書き換えずに別項目で渡す",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["heading", "text"],
+            "properties": {
+              "heading": {"type": "string"},
+              "text": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "secondary": {
+      "type": "array",
+      "description": "副次の論理開示。全文を載せるのは最大 state.max_secondary_bodies 件（既定2）。切り詰めで body が null になることがある",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "body"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1},
+          "body": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "other_titles": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "本文を載せない残りの論理開示の表題"
+    },
+    "state_version": {"type": "string", "const": "v2"}
+  },
+  "$defs": {
+    "state_completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["missing", "sources", "truncate", "rules"],
+      "description": "bundles.state_completeness_json の形。Jev に送る state には含めない（送る内容を版ごとに変えないため）",
+      "properties": {
+        "missing": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "null で埋めた項目のパス（例 market_context.prev_close）"
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "項目群ごとの出どころ（null / db / tdnet_prefix / xbrl）"
+        },
+        "truncate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applied", "chars_before", "chars_after"],
+          "properties": {
+            "applied": {"type": "boolean"},
+            "chars_before": {"type": "integer"},
+            "chars_after": {"type": "integer"},
+            "secondary_bodies_dropped": {"type": "integer"},
+            "primary_body_cut_chars": {"type": "integer"},
+            "excerpt_headings": {"type": "array", "items": {"type": "string"}},
+            "report_like": {"type": "boolean"}
+          }
+        },
+        "rules": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state_version", "truncate_rev"],
+          "properties": {
+            "state_version": {"type": "string"},
+            "truncate_rev": {"type": "string", "description": "切り詰め規則の改訂日。変えたら state_version も上げる（05-state構築 4.5）"},
+            "filters_version": {"type": "string"},
+            "calendar_version": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-20
-- Related: 要件F1-1（表題のみの暫定判定）、F3-2（2版並走）、F7-3（週次再判定）、基本設計3.4・4章
+- Related: 要件F1-1（表題のみの暫定判定）、F3-2（2版並走）、F7-3（週次再判定）、基本設計3.4・4章、ADR 024（暫定→本判定は superseding bundle）
 
 ## Context
 同一 bundle に対して複数の judgment 行が発生する：(1) PDF取得失敗時の表題のみ暫定判定、(2) PDF到着後の本判定、(3) jev-latest / jev-preview の並走、(4) 週次の固定10件再判定。基本設計の主分析条件は `model='jev-latest' AND delayed=0 AND error_type IS NULL` だが、(1) と (4) を区別する列がなく、暫定判定や再判定が主分析に混入する。

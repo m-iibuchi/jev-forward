@@ -55,3 +55,8 @@
 | 019 | 除外と重要度低下を分け、低下は flags_json で表す | Accepted |
 | 020 | 問い版の凍結は CLI freeze-questions で行い、JSONファイルは不変 | Accepted |
 | 021 | ledger のハッシュ連鎖は明示 id の範囲で日次に計算する | Accepted |
+| 022 | 束ね待ちの検出は event_id で追い、時刻の窓では探さない | Accepted |
+| 023 | TOB の束ね例外は対象者側だけに適用する | Accepted |
+| 024 | 暫定判定に本文が届いたら superseding bundle を作る | Accepted |
+| 025 | 営業日カレンダーは版付き設定ファイルに持ち settings が読む | Accepted |
+| 026 | 切り詰めの予算は送信 JSON の文字数で測り、章の抜粋は別項目に置く | Accepted |
