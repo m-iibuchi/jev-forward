@@ -17,7 +17,7 @@ docker compose -f deploy/docker-compose.yml run --rm dev jevfwd --help
 
 ## 現状
 
-2026-09-19 Playground検証52回を完了。2026-09-20 に要件定義書v3・基本設計書・ADR（`docs/adr/`）・M1/M3 の詳細設計（`docs/detailed/00〜05`）・state v2 の契約（`docs/contracts/`）が揃った。同日、M1 前半（`common/` と `store/`：追記専用の凍結ログ）を実装（task 018、受入テスト T00-01〜19・T01-01〜27）。次は M1 後半（設定と CLI、task 019）。実装は `docs/実装セッション指示.md` の順、作業の指示は `docs/tasks/` の番号で行う。
+2026-09-19 Playground検証52回を完了。2026-09-20 に要件定義書v3・基本設計書・ADR（`docs/adr/`）・M1/M3 の詳細設計（`docs/detailed/00〜05`）・state v2 の契約（`docs/contracts/`）が揃った。同日、M1（task 018・019）を実装：`common/`、追記専用の凍結ログ `store/`、設定（`config/*.yaml` と `settings.py`）、問い版の読み込み、CLI（`init-db` `freeze-questions` `freeze-state`）。受入テスト 167 件が通る。次は M3 前半（束ね、task 020）。実装は `docs/実装セッション指示.md` の順、作業の指示は `docs/tasks/` の番号で行う。
 
 ## 使い方（Playgroundで試す段階、検証用スクリプト）
 

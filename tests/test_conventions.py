@@ -163,7 +163,10 @@ def test_every_module_has_docstring():
 
 def test_versioned_config_files_unchanged():
     """T00-19: 版つき設定ファイルの一覧（削除・改名の検知）。SHA は T02-18 / T02-24。"""
-    expected = {"questions.v1.json", "questions.v2.json"}   # セッション 1b で *.v1.yaml を足す
+    expected = {
+        "questions.v1.json", "questions.v2.json",
+        "entry_rules.v1.yaml", "filters.v1.yaml", "trading_calendar.v1.yaml",
+    }
     found = {p.name for p in CONFIG_DIR.glob("*.v*.json")} | {
         p.name for p in CONFIG_DIR.glob("*.v*.yaml")
     }

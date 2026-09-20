@@ -1,0 +1,59 @@
+# jevfwd の運用設定。周期・閾値・パスだけを置く。秘密（API キー、トークン、ntfy トピック）は環境変数。
+# 全項目と既定値は docs/contracts/settings.schema.json（settings.py の Settings から生成）。
+# 時刻は "HH:MM" を必ずクォートする（YAML は 18:30 を 60進数の 1110 と解釈する）。
+paths:
+  config_dir: config
+  contracts_dir: docs/contracts
+storage:
+  db_path: data/db/jevfwd.sqlite
+  raw_pdf_dir: data/raw/pdf
+  raw_pdf_retention_days: 30
+fetch:
+  interval_sec: 60
+  pdf_retries: 3
+  list_lookback_days: 1
+bundle:
+  window_sec: 300
+  grace_sec: 120
+  scan_lookback_sec: 259200
+  supersede_deadline_sec: 3600
+  max_supersede_depth: 2
+  max_per_cycle: 200
+  catchup_factor: 10
+  poll_sec: 30
+judge:
+  api_base_url: https://api.typesafe.ai
+  models: [jev-latest, jev-preview]
+  timeout_sec: 10
+  retries: 3
+  delayed_threshold_sec: 300
+  max_state_chars: 40000
+  question_version: v2
+  state_version: v2
+market:
+  session_open: "09:00"
+  session_close: "15:00"
+  pre_open_from: "08:00"
+  tz: Asia/Tokyo
+digest:
+  runs: ["18:30", "07:30"]
+  tz: Asia/Tokyo
+market_cache:
+  enabled: false
+  run_at: "06:30"
+  topix_source: null
+monitor:
+  heartbeat_sec: 60
+  missing_beats_alert: 3
+  disk_alert_pct: 80
+  daily_cost_limit_jpy: null
+state:
+  max_secondary_bodies: 2
+  excerpt_chars: 2000
+  max_excerpts: 4
+  recent_days: 30
+  report_min_chars: 50000
+  report_min_headings: 5
+entry_rules_version: v1
+filters_version: v1
+calendar_version: v1
