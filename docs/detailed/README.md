@@ -15,7 +15,7 @@
 | 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版、同日追補（`IssuerInput`、INSERT の書き手。task 017／T05-08 を M6 へ・章抜粋の末尾規則。task 025・026） |
 | 06 | 06-取得.md | `fetch/` | M2 | task 001 が done になるまで書かない |
 | 07 | 07-判定.md | `judge/client.py`、judge_worker | M4 | task 002 が done になるまで書かない |
-| 08 | 08-監視通知.md | `monitor/`、ledger 算出、バックアップ | M5 | — |
+| 08 | [08-監視通知.md](08-監視通知.md) | `monitor/`（notify、heartbeat、ledger、prune）、CLI 4本、`deploy/`（prod・supervisord・compose・バックアップ） | M5 | 2026-09-20 初版（task 027、ADR 028。heartbeat / notify を 06 から移した） |
 | 09 | 09-市場データ.md | `market/` | M6 | task 003 |
 | 10 | 10-採点.md | `score/` | M6 | — |
 | 11 | 11-ダイジェスト模擬執行.md | `digest/`、`paper/` | M7 | — |
@@ -37,7 +37,7 @@
 
 - `Tnn-mm`：`nn` は詳細設計のファイル番号、`mm` は2桁通し。欠番・再利用なし
 - テスト関数は英語名、docstring の1行目に ID を書く（例：`"""T01-07: UPDATE は 9 テーブルすべてで IntegrityError"""`）
-- テストは `tests/test_<対象>.py` に置く。01 → `tests/test_store.py`、02 → `tests/test_settings.py` と `tests/test_questions.py`、03 → `tests/test_cli.py`、04 → `tests/test_bundle.py`、05 → `tests/test_state.py`、00 → `tests/test_conventions.py` と `tests/test_common.py`
+- テストは `tests/test_<対象>.py` に置く。01 → `tests/test_store.py`、02 → `tests/test_settings.py` と `tests/test_questions.py`、03 → `tests/test_cli.py`、04 → `tests/test_bundle.py`、05 → `tests/test_state.py`、08 → `tests/test_monitor.py` と `tests/test_deploy.py`、00 → `tests/test_conventions.py` と `tests/test_common.py`
 - fixture は `tests/fixtures/` の実ファイルを使う。受入テストの表にファイル名を書く（存在しないファイルを指さない）。読むときは `read_text(encoding="utf-8")`（CRLF。00-共通規約 13章）
 
 ## 写経の手順（実装セッション向け）

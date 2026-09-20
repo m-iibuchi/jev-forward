@@ -61,3 +61,4 @@
 | 025 | 営業日カレンダーは版付き設定ファイルに持ち settings が読む | Accepted |
 | 026 | 切り詰めの予算は送信 JSON の文字数で測り、章の抜粋は別項目に置く | Accepted |
 | 027 | superseding bundle が引き継ぐ flags は `event_note:` だけ | Accepted |
+| 028 | 生存確認は各プロセスが自分の beat を書き、heartbeat は集約と通知だけ | Accepted |

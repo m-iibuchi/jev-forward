@@ -28,8 +28,11 @@ jevfwd [--config PATH] [--log-level LEVEL] [--version] <subcommand> [options]
   freeze-questions --version vN [--file PATH]
   freeze-state     --version vN [--file PATH]
   fetch            [--once]        M2
-  heartbeat        [--once]        M2
+  heartbeat        [--once]        M5（08-監視通知。基本設計では M2）
   bundle           [--once]        M3
+  ledger-append                    M5（ADR 021。同日2回目は no-op）
+  ledger-verify    [--db PATH]     M5（全行を再計算。不一致は exit 1）
+  prune-pdf                        M5（ADR 018。転送確認済み・期限切れの原本 PDF を削除）
   judge            [--once] [--bundle ID]   M4
   market-cache     [--once]        M6
   score                            M6
@@ -43,6 +46,7 @@ jevfwd [--config PATH] [--log-level LEVEL] [--version] <subcommand> [options]
 - `--version`：`jevfwd <importlib.metadata.version("jevfwd")>` を出して exit 0
 - サブコマンド名はハイフン区切り（`init-db` `freeze-questions` `market-cache`）。基本設計2章の `cli.py` コメントの一覧に `init-db` と `bundle` を加える（★）
 - `bundle` は束ね〜state構築〜判定キューを回すプロセス（M3）。`bundle` `state` `judge` を横断して繋ぐのは `cli` の役目（00-共通規約 8章）
+- M5 で `ledger-append` `ledger-verify` `prune-pdf` を足すと T03-01 の語は 15 になり、`heartbeat` がスタブから外れて T03-04 は 7 スタブになる（08-監視通知 8章末尾）。常駐ループを持つサブコマンド（`bundle` `fetch` `judge` `heartbeat`）は周期ごとに自分の beat を書く（ADR 028）。起動時の `db.connect` は `_connect_with_retry`（supervisord が `init-db` の完了を待たないため。08 の 4.9）
 
 ### 3.2 終了コード
 

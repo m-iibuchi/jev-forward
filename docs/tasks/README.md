@@ -50,6 +50,7 @@
 | 015 | [entry_rules.exit.thesis_broken_categories の意味](015-thesis_broken_categoriesの意味.md) | open | human | 11-ダイジェスト模擬執行（M7） |
 | 016 | [state v2 のネスト形状は Jev で未検証](016-state_v2のネスト形状は未検証.md) | open | human | M4 の契約テスト、事前宣言の凍結 |
 | 025 | [`DbMarketContext`（と T05-08）は M6 に送る](025-DbMarketContextとT05-08はM6.md) | open | claude | M6（09-市場データ） |
+| 028 | [実装 M5（セッション 5：監視・台帳・配備）](028-実装M5.md) | open | claude | 段階1の稼働 |
 
 ## 完了（`archive/`）
 
@@ -70,3 +71,4 @@
 | 024 | [supersede の歯止めの実装不足](archive/024-supersedeの歯止めの実装不足.md) | 04・01 を補筆、ADR 027、`bundle.stuck_margin_sec` を新設 | 2026-09-20 |
 | 021 | [実装 M3 後半（セッション 3b：state構築・`jevfwd bundle`）](archive/021-実装M3後半.md) | `state/` と `jevfwd bundle --once`。T05（T05-08 除く）と T03-23 が通る | 2026-09-20 |
 | 026 | [章抜粋のキーワードが長い章題に誤爆する](archive/026-章抜粋のキーワードが長い章題に誤爆する.md) | キーワードは章題の末尾12文字で探す（05 の 4.5） | 2026-09-20 |
+| 027 | [詳細設計 M5](archive/027-詳細設計M5.md) | `docs/detailed/08-監視通知.md`（T08-01〜30）、ADR 028、task 028 を起票 | 2026-09-20 |
