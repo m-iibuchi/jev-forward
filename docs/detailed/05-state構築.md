@@ -3,7 +3,7 @@
 - 対象：`state/builder.py` `state/truncate.py` `state/context.py`、`docs/contracts/state.v2.schema.json`
 - マイルストーン：M3（`market_context` は段階1では null。実データは M6）
 - 関連：CLAUDE.md ルール2・4・6、要件 F2-1〜F2-6、基本設計 3.3、ADR 002・015・017・020・024・026、task 005・006・013
-- 版：2026-09-20 初版
+- 版：2026-09-20 初版（同日追補：`bundles` への INSERT は `runner` が `state_of` 経由で行う。task 017）
 
 ## 1. 責務
 
@@ -11,7 +11,7 @@
 - `judge.max_state_chars` に収まるまで切り詰める（要件 F2-4）
 - 埋められなかった項目を `state_completeness` に残す（要件 F2-6、ADR 017）
 
-しないこと：HTTP・判定（07-判定）、市場データの取得（`market/`。`state` は読むだけ）、`bundles` への INSERT（`cli` が `state_json` を付けて書く）、問いの文言の生成（`judge/questions.py`）。
+しないこと：HTTP・判定（07-判定）、市場データの取得（`market/`。`state` は読むだけ）、`bundles` への INSERT（`bundle/runner.py` の `run_once` が、`cli.cmd_bundle` から注入された `state_of` 経由で本モジュールを呼び、`state_json` を付けて1回だけ INSERT する。04-束ね 3.4、task 017）、問いの文言の生成（`judge/questions.py`）。
 
 **評価軸になる語を state に足さない**（CLAUDE.md ルール3）。state は事実だけを置く。
 
@@ -26,6 +26,14 @@
 ### 3.1 `state/builder.py`
 
 ```python
+@dataclass(frozen=True, slots=True)
+class IssuerInput:
+    """発行者。cli.cmd_bundle が BundlePlan と events から組む（03-CLI 3.8）"""
+    code5: str                     # TDnet 5文字。state には display_code で4文字にして入れる
+    company: str                   # 市場区分の接頭辞を剥がした社名（filters.strip_market_prefix）。空は ValueError
+    market: str | None             # filters.market_of_company の結果（4.2）。無ければ None
+    event_ids: tuple[int, ...]     # forecast_context の引数（DisclosureContext）
+
 @dataclass(frozen=True, slots=True)
 class DocInput:
     """1論理開示。連番は連結済みの本文を渡す（連結は builder が logical_docs_json の順に行う）"""
@@ -195,12 +203,12 @@ ADR 024（04-束ね 4.8）で、PDF が後から届いた場合は superseding b
 
 | 事象 | 振る舞い |
 |---|---|
-| 切り詰めが5回で収束しない | `JevfwdError`。`cli` が捕まえて `judgments` にエラー行を残す（判定はしない） |
+| 切り詰めが5回で収束しない | `JevfwdError`。`bundle/runner.py` が捕まえ、state 列 NULL・`flags` に `state_error:JevfwdError` の bundle 行を残す（04-束ね 5章、task 017）。判定側（07-判定）がその bundle に `judgments` のエラー行を残す（判定はしない） |
 | `state_version` が未凍結 | `JudgeError`（判定側。02-設定 3.2 `render_from_db` と同じ扱い） |
-| 生成した state が schema に合わない | `JevfwdError`。**送る前に落とす**（凍結ログに不正な state を残さない） |
+| 生成した state が schema に合わない | `JevfwdError`。**送る前に落とす**（凍結ログに不正な state を残さない）。bundle 行の扱いは上と同じ（`state_error:*`） |
 | 本文がすべて None | 例外にしない。表題のみの state ＋ `provisional_only` |
 | `market_context` が取れない | 例外にしない。null ＋ `completeness.missing` |
-| `issuer.company` が空 | `ValueError`（問いの主語が空になる。ADR 002 の前提が崩れる） |
+| `issuer.company` が空 | `ValueError`（問いの主語が空になる。ADR 002 の前提が崩れる）。`cli.cmd_bundle` の `state_of` が `JevfwdError` に包んで投げ直す（`runner` は `JevfwdError` だけを行として残す） |
 
 ## 6. 設定項目
 
@@ -333,3 +341,4 @@ schema 検証は `docs/contracts/state.v2.schema.json` を読み、テスト側�
 | 8 | `issuer.market` は段階1では社名接頭辞から埋める（`filters.v1.yaml` の `market_map`） | 3.3 |
 | 9 | `state.*` の設定キーを新設（`max_secondary_bodies` `excerpt_chars` `max_excerpts` `recent_days` `report_min_chars` `report_min_headings`） | 5章 |
 | 10 | 暫定 state と本判定 state は別 bundle に載る（ADR 024。task 013 の結論） | 3.4 |
+| 11 | state は bundle 行の INSERT **前**に組む。`bundles` への書き込みは `bundle/runner.py`（`state_of` 注入）に一本化し、`state` も `cli` も直接 INSERT しない（task 017、04-束ね ★11） | 3.2 の 8 |

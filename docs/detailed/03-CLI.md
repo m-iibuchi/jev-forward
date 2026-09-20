@@ -3,7 +3,7 @@
 - 対象：`cli.py`、`pyproject.toml` の `[project.scripts]`
 - マイルストーン：M1（`init-db` `freeze-questions` `freeze-state` と `--help`。他サブコマンドはスタブ）
 - 関連：CLAUDE.md ルール2、要件 F3-6、基本設計 2章・8章 M1、ADR 014・020、01-凍結ログ、02-設定
-- 版：2026-09-20 初版（同日 M3 追補：`bundle` サブコマンド、T03-15 の確定）
+- 版：2026-09-20 初版（同日 M3 追補：`bundle` サブコマンド、T03-15 の確定。同日追補2：`cmd_bundle` の擬似コードと `state_of` の組み立て（task 017）、`pyproject.toml` の `dev` extras、Docker 内での実行）
 
 ## 1. 責務
 
@@ -94,6 +94,15 @@ ERROR: サブコマンド fetch は未実装（M2 で実装。docs/detailed/06-�
 ```
 を stderr に出して exit 1。対応表：fetch/heartbeat → M2、bundle → M3（`docs/detailed/04-束ね.md` `05-state構築.md`）、judge → M4、market-cache/score → M6、digest/paper → M7、report → M8。
 
+各マイルストーンで実装したサブコマンドは `STUBS` から外す（M3 で `bundle` を外すと T03-04 のスタブは 8 本になる。表の期待値も同時に直す）。
+
+### 3.8 `bundle [--once]`（M3 で実装。セッション 3b）
+
+- 束ね（04-束ね）→ state 構築（05-state構築）→ `bundles` への INSERT を1周期分回す。`--once` で1回だけ、無しなら `bundle.poll_sec` 周期のループ（M5 で supervisord の `program:bundler` に載せる）
+- `bundle` は `state` を import できないので、`cli` が `state_of: Callable[[BundlePlan], StateResult | None]` を組み立てて `runner.run_once` に渡す（04-束ね 3.4、task 017）。`cli` 自身は `bundles` に INSERT しない
+- `state_of` の中身：`queries.event_bodies(conn, plan.event_ids)` で本文を引き、`plan.logical_docs` の各 `event_ids` の順（連番順）に連結して `DocInput(title, body, rank)` に変換 → `IssuerInput`（`plan.company` から `filters.strip_market_prefix`、`market_of_company`）→ `build_state(..., market_ctx=NullMarketContext(), disc_ctx=DbDisclosureContext(conn), cfg=settings)`。`ValueError`（社名空）は `JevfwdError` に包む
+- 出力：`bundles=<件数> ids=<id,...>` を1行。`JevfwdError` 以外の例外は 3.2 の表どおり exit 1（`--once` 無しのループでは捕まえて `heartbeat(ok=0)` を書いて次周期）
+
 ## 4. データ契約
 
 - `question_versions` / `state_versions` の行の形は 01-凍結ログ 4.3
@@ -106,12 +115,17 @@ name = "jevfwd"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = ["pymupdf>=1.24", "httpx>=0.27", "pyyaml>=6", "pydantic>=2"]
+[project.optional-dependencies]
+dev = ["pytest>=8"]
 [project.scripts]
 jevfwd = "jevfwd.cli:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 ```
+
+- 開発・テストは **Docker コンテナ内**で行う（ホストの Python に依存しない。`docs/実装セッション指示.md` 共通の前置き）。`deploy/Dockerfile` の `dev` ターゲット（`python:3.11-slim`、`pip install -e .[dev]`）と `deploy/docker-compose.yml` の `dev` サービス（リポジトリを `/app` に bind mount）を M1 のセッション 1a で作る。M5 が本番ターゲットと各プロセスのサービスを足す
+- 実行例：`docker compose -f deploy/docker-compose.yml run --rm dev pytest`、`docker compose -f deploy/docker-compose.yml run --rm dev jevfwd --help`
 
 ## 5. エラー時の振る舞い
 
@@ -169,6 +183,37 @@ def cmd_freeze_questions(args, settings) -> int:
     print(f"{'frozen' if status == 'frozen' else 'already frozen'} question_version={args.ver} sha256={sha} frozen_at={ts}")
     return 0
 
+def cmd_bundle(args, settings) -> int:                              # M3（セッション 3b）で追加。task 017
+    filters = load_filters(settings.filters_path()); calendar = load_calendar(settings.calendar_path())
+    conn = db.connect(settings.storage.db_path)
+    disc_ctx = DbDisclosureContext(conn); market_ctx = NullMarketContext()     # 段階1。market_cache.enabled で切替は M6
+
+    def state_of(plan: BundlePlan) -> StateResult | None:
+        bodies = queries.event_bodies(conn, plan.event_ids)               # {event_id: body_text | None}
+        docs = [DocInput(title=d.title, rank=d.rank,
+                         body=_concat_bodies([bodies[i] for i in d.event_ids]))   # 連番順に連結。全件 None なら None
+                for d in plan.logical_docs]
+        raw_company = plan.company or ""
+        issuer = IssuerInput(code5=plan.code, company=filters.strip_market_prefix(raw_company),
+                             market=filters.market_of_company(raw_company), event_ids=plan.event_ids)
+        try:
+            return build_state(issuer=issuer, anchor_published_at=plan.anchor_published_at, session=plan.session,
+                               docs=docs, market_ctx=market_ctx, disc_ctx=disc_ctx, cfg=settings)
+        except ValueError as e:                                     # 社名空など。行として残すため JevfwdError に包む
+            raise JevfwdError(f"state 構築の入力不正: {e}") from e
+
+    def once() -> int:
+        ids = runner.run_once(conn, now_utc(), settings, filters, calendar, state_of)
+        print(f"bundles={len(ids)} ids={','.join(map(str, ids))}")
+        return 0
+
+    if args.once:
+        return once()
+    while True:                                                     # 常駐。例外は heartbeat に書いて次周期
+        try: once()
+        except JevfwdError as e: log.error("%s", e); _heartbeat_ng(conn, "bundler", str(e))
+        time.sleep(settings.bundle.poll_sec)
+
 def cmd_freeze_state(args, settings) -> int:
     path = Path(args.file) if args.file else settings.state_schema_path(args.ver)
     text, sha = _read_version_file(path)
@@ -190,7 +235,7 @@ def cmd_freeze_state(args, settings) -> int:
 | T03-01 | `test_help_lists_all_subcommands` | `run("--help")` | `SystemExit(0)`、stdout に `init-db` `fetch` `bundle` `judge` `heartbeat` `digest` `market-cache` `score` `paper` `report` `freeze-questions` `freeze-state` の12語すべて | — |
 | T03-02 | `test_unknown_subcommand_exit_2` | `run("frobnicate")` | `SystemExit(2)`、stderr に `invalid choice` | — |
 | T03-03 | `test_no_subcommand_exit_2` | `run()` | `SystemExit(2)` | — |
-| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 9スタブ | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`bundle`→`M3`、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
+| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 9スタブ（M1 時点。M3 で `bundle` を外して 8 スタブにする） | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`bundle`→`M3`（M1 時点のみ）、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
 | T03-05 | `test_version_flag` | `run("--version")` | `SystemExit(0)`、stdout が `jevfwd 0.1.0` で始まる | — |
 | T03-06 | `test_init_db_creates_and_is_idempotent` | `run("--config", cfg, "init-db")` を2回 | 両方 0。stdout に `schema_version=1`。DB に `schema_version` 1行、トリガー18本 | — |
 | T03-07 | `test_freeze_questions_before_init_db_exit_3` | `init-db` せずに `freeze-questions --version v2` | 3。stderr に `init-db` | `config/questions.v2.json` |
@@ -212,8 +257,9 @@ def cmd_freeze_state(args, settings) -> int:
 
 ## 9. 完了条件
 
-- T03-01〜T03-22 が通る
-- `python -m jevfwd.cli --help` と `jevfwd --help`（`pip install -e .` 後）が同じ出力
+- T03-01〜T03-22 が通る（`docker compose -f deploy/docker-compose.yml run --rm dev pytest`）
+- `python -m jevfwd.cli --help` と `jevfwd --help`（`dev` イメージは `pip install -e .[dev]` 済み）が同じ出力
+- M3 完了時：`jevfwd bundle --once` が 3.8 のとおり動き、T03-04 が 8 スタブに更新されている
 - `docs/事前宣言.md` に貼る `frozen question_version=v2 …` の行が `freeze-questions` の stdout から得られる（実行は段階2開始時、人が行う）
 
 ## 10. 基本設計からの差分
@@ -224,3 +270,5 @@ def cmd_freeze_state(args, settings) -> int:
 | 4 | サブコマンド `bundle` を追加（M3 の束ね〜state〜判定キューのプロセス） | 2章 `cli.py` のコメント、8章 M3 |
 | 2 | 終了コード 3（スキーマ不一致）を予約 | — |
 | 3 | `freeze-*` の既定パスは `settings.yaml` の `paths.*` から。`--config-dir` 引数は設けない | — |
+| 5 | `bundle` は `cli` が `state_of` を組み立てて `runner.run_once` に注入する。`cli` は `bundles` に INSERT しない（task 017） | 3.2 の 8、3.4 冒頭 |
+| 6 | 開発・テストは Docker の `dev` ターゲットで行う。`deploy/Dockerfile` と compose の `dev` 分は M1 で作る | 6章、8章 M1 |
