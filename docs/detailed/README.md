@@ -10,9 +10,9 @@
 | 00 | [00-共通規約.md](00-共通規約.md) | 全モジュール共通（時刻・コード・JSON・例外・境界・テスト規約） | M1 | 2026-09-20 初版 |
 | 01 | [01-凍結ログ.md](01-凍結ログ.md) | `store/`（schema.sql 全文、db、rows、repo、queries、freeze、migrations） | M1 | 2026-09-20 初版、同日追補（M3 の読み取りに `bundles_with_full_judgment`。task 024） |
 | 02 | [02-設定.md](02-設定.md) | `settings.py`（settings / entry_rules / filters / 秘密）、`judge/questions.py` | M1 | 2026-09-20 初版、同日追補（`bundle.poll_sec`（task 017）、SHA-256 の記録と T02-35 の訂正（task 019・022）） |
-| 03 | [03-CLI.md](03-CLI.md) | `cli.py`（`init-db` `freeze-questions` `freeze-state`、`bundle`、未実装スタブ） | M1（`bundle` は M3） | 2026-09-20 初版、同日追補（3.8 `bundle`、`cmd_bundle`、Docker 内での実行。task 017） |
+| 03 | [03-CLI.md](03-CLI.md) | `cli.py`（`init-db` `freeze-questions` `freeze-state`、`bundle`、未実装スタブ） | M1（`bundle` は M3） | 2026-09-20 初版、同日追補（3.8 `bundle`、`cmd_bundle`。task 017／`bundle` 実装・T03-23。task 021） |
 | 04 | [04-束ね.md](04-束ね.md) | `bundle/`（grouper、filters、runner、カレンダー） | M3 | 2026-09-20 初版、同日追補（`run_once` に `state_of` 注入、T04-35。task 017／supersede の歯止めと主開示の期待値。task 023・024、ADR 027） |
-| 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版、同日追補（`IssuerInput`、INSERT の書き手。task 017） |
+| 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版、同日追補（`IssuerInput`、INSERT の書き手。task 017／T05-08 を M6 へ・章抜粋の末尾規則。task 025・026） |
 | 06 | 06-取得.md | `fetch/` | M2 | task 001 が done になるまで書かない |
 | 07 | 07-判定.md | `judge/client.py`、judge_worker | M4 | task 002 が done になるまで書かない |
 | 08 | 08-監視通知.md | `monitor/`、ledger 算出、バックアップ | M5 | — |

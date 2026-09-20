@@ -7,17 +7,27 @@
 import argparse
 import functools
 import json
+import logging
 import sys
+import time
 from importlib import metadata
 from pathlib import Path
 
+from .bundle import runner
 from .common.errors import ConfigError, JevfwdError, SchemaMismatchError
 from .common.hashing import sha256_hex
 from .common.logutil import setup_logging
 from .common.timeutil import now_utc, to_utc_str
 from .judge import questions
-from .settings import Secrets, Settings, load_settings, resolve_settings_path
-from .store import db, freeze
+from .settings import (
+    Secrets, Settings, load_calendar, load_filters, load_settings, resolve_settings_path,
+)
+from .state.builder import DocInput, IssuerInput, build_state, join_bodies
+from .state.context import DbDisclosureContext, NullMarketContext
+from .store import db, freeze, queries, repo
+from .store.rows import NewHeartbeat
+
+log = logging.getLogger(__name__)
 
 PROG = "jevfwd"
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
@@ -32,7 +42,6 @@ EXIT_INTERRUPTED = 130
 STUBS: tuple[tuple[str, str, str | None], ...] = (
     ("fetch", "M2", "docs/detailed/06-取得.md"),
     ("heartbeat", "M2", "docs/detailed/06-取得.md"),
-    ("bundle", "M3", "docs/detailed/04-束ね.md と 05-state構築.md"),
     ("judge", "M4", "docs/detailed/07-判定.md"),
     ("market-cache", "M6", "docs/detailed/09-市場データ.md"),
     ("score", "M6", "docs/detailed/10-採点.md"),
@@ -68,6 +77,10 @@ def build_parser() -> argparse.ArgumentParser:
     fs.add_argument("--version", required=True, dest="ver", help="vN")
     fs.add_argument("--file", help="既定は <contracts_dir>/state.vN.schema.json")
     fs.set_defaults(func=cmd_freeze_state)
+
+    bundle = sub.add_parser("bundle", help="束ね〜state構築を1周期ずつ回す")
+    bundle.add_argument("--once", action="store_true", help="1周期だけ実行して終わる")
+    bundle.set_defaults(func=cmd_bundle)
 
     for name, milestone, doc in STUBS:
         stub = sub.add_parser(name, help=f"{milestone} で実装")
@@ -160,6 +173,71 @@ def cmd_freeze_state(args: argparse.Namespace, settings: Settings) -> int:
         conn.close()
     _print_frozen("state_version", status, args.ver, sha, ts)
     return EXIT_OK
+
+
+def _heartbeat_ng(conn, process: str, note: str) -> None:
+    """常駐ループが例外を飲んだときに1行残す（黙って次の周期へ行かない）。"""
+    with db.transaction(conn):
+        repo.insert_heartbeat(
+            conn, NewHeartbeat(ts=to_utc_str(now_utc()), process=process, ok=0, note=note)
+        )
+
+
+def cmd_bundle(args: argparse.Namespace, settings: Settings) -> int:
+    """束ね → state 構築 → `bundles` への追記を回す（03-CLI 3.8、task 017）。
+
+    `bundle` は `state` を import できない（00-共通規約 8章）ので、state の構築は
+    `state_of` として注入する。`bundles` に INSERT するのは `runner` だけ。
+    """
+    filters = load_filters(settings.filters_path())
+    calendar = load_calendar(settings.calendar_path())
+    conn = db.connect(settings.storage.db_path)
+    disc_ctx = DbDisclosureContext(conn)
+    market_ctx = NullMarketContext()          # 段階1。market_cache.enabled での切替は M6
+
+    def state_of(plan):
+        bodies = queries.event_bodies(conn, plan.event_ids)
+        docs = [
+            DocInput(
+                title=doc.title,
+                body=join_bodies([bodies.get(i) for i in doc.event_ids]),   # 連番順に連結
+                rank=doc.rank,
+            )
+            for doc in plan.logical_docs
+        ]
+        raw_company = plan.company or ""
+        issuer = IssuerInput(
+            code5=plan.code,
+            company=filters.strip_market_prefix(raw_company),
+            market=filters.market_of_company(raw_company),
+            event_ids=plan.event_ids,
+        )
+        try:
+            return build_state(
+                issuer=issuer, anchor_published_at=plan.anchor_published_at,
+                session=plan.session, docs=docs, market_ctx=market_ctx,
+                disc_ctx=disc_ctx, cfg=settings,
+            )
+        except ValueError as e:                # 社名が空など。行として残すため包み直す
+            raise JevfwdError(f"state 構築の入力不正: {e}") from e
+
+    def once() -> None:
+        ids = runner.run_once(conn, now_utc(), settings, filters, calendar, state_of)
+        print(f"bundles={len(ids)} ids={','.join(str(i) for i in ids)}")
+
+    try:
+        if args.once:
+            once()
+            return EXIT_OK
+        while True:                            # 常駐。例外は heartbeat に書いて次の周期へ
+            try:
+                once()
+            except JevfwdError as e:
+                log.error("%s", e)
+                _heartbeat_ng(conn, runner.PROCESS, str(e))
+            time.sleep(settings.bundle.poll_sec)
+    finally:
+        conn.close()
 
 
 def cmd_stub(args: argparse.Namespace, settings: Settings, *, name: str, milestone: str,
