@@ -1,0 +1,23 @@
+# 開発・テスト用。すべてコンテナ内で実行する（ホストの python / venv を使わない）。
+#   docker compose -f deploy/docker-compose.yml run --rm dev pytest
+#   docker compose -f deploy/docker-compose.yml run --rm dev jevfwd --help
+# 本番のサービス（fetcher / bundler / judge_worker / heartbeat / digest）は M5 で足す。
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: dev
+    image: jevfwd-dev:latest
+    working_dir: /app
+    # コンテナ内で作るファイル（.pytest_cache、data/db）をホストの所有者に合わせる
+    user: "${JEVFWD_UID:-1000}:${JEVFWD_GID:-1000}"
+    volumes:
+      - ..:/app
+    environment:
+      TZ: UTC
+      PYTHONPATH: /app/src
+      HOME: /tmp
+    env_file:
+      - path: ../.env
+        required: false

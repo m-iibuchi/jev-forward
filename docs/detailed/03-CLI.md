@@ -110,15 +110,29 @@ ERROR: サブコマンド fetch は未実装（M2 で実装。docs/detailed/06-�
 - `pyproject.toml`：
 
 ```toml
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "jevfwd"
 version = "0.1.0"
+description = "Jev判定フォワードテスト基盤"
 requires-python = ">=3.11"
 dependencies = ["pymupdf>=1.24", "httpx>=0.27", "pyyaml>=6", "pydantic>=2"]
+
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+
 [project.scripts]
 jevfwd = "jevfwd.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+jevfwd = ["store/*.sql", "store/migrations/*.sql"]   # schema.sql は import 時に読む
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
