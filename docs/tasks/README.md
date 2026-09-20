@@ -49,7 +49,6 @@
 | 012 | [9/24以降の答え合わせを検証ログに追記](012-答え合わせの追記.md) | open | human | — |
 | 015 | [entry_rules.exit.thesis_broken_categories の意味](015-thesis_broken_categoriesの意味.md) | open | human | 11-ダイジェスト模擬執行（M7） |
 | 016 | [state v2 のネスト形状は Jev で未検証](016-state_v2のネスト形状は未検証.md) | open | human | M4 の契約テスト、事前宣言の凍結 |
-| 019 | [実装 M1 後半（セッション 1b：設定・CLI）](019-実装M1後半.md) | open | claude | 020、段階2の freeze-questions |
 | 020 | [実装 M3 前半（セッション 3a：束ね）](020-実装M3前半.md) | open | claude | 021 |
 | 021 | [実装 M3 後半（セッション 3b：state構築・`jevfwd bundle`）](021-実装M3後半.md) | open | claude | M4 の着手、段階1の稼働 |
 
@@ -65,3 +64,5 @@
 | 009 | [kickoff の書き換え（詳細設計参照型）](archive/009-実装指示の書き換え.md) | `docs/実装セッション指示.md` を全面改稿（1a/1b/3a/3b、Docker 内で実行） | 2026-09-20 |
 | 017 | [`bundles.state_json` の書き手（04/05 の食い違い）](archive/017-bundle_state_jsonの書き手.md) | `run_once` に `state_of` を注入（04 ★11、05 ★11、03 の 3.8） | 2026-09-20 |
 | 018 | [実装 M1 前半（セッション 1a：共通規約・凍結ログ）](archive/018-実装M1前半.md) | `common/` `store/` と Docker の dev 環境。T00-01〜19・T01-01〜27 が通る | 2026-09-20 |
+| 019 | [実装 M1 後半（セッション 1b：設定・CLI）](archive/019-実装M1後半.md) | `config/*.yaml`・`settings.py`・`questions.py`・`cli.py`。T02・T03 が通る | 2026-09-20 |
+| 022 | [「基準日設定」の rank が受入テストと filters.v1.yaml で食い違う](archive/022-基準日設定のrank.md) | rank 6（訂正・事務）が正。02・04 の例示を訂正 | 2026-09-20 |

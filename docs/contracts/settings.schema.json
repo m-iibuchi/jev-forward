@@ -1,0 +1,439 @@
+{
+  "$defs": {
+    "BundleCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "catchup_factor": {
+          "default": 10,
+          "title": "Catchup Factor",
+          "type": "integer"
+        },
+        "grace_sec": {
+          "default": 120,
+          "title": "Grace Sec",
+          "type": "integer"
+        },
+        "max_per_cycle": {
+          "default": 200,
+          "title": "Max Per Cycle",
+          "type": "integer"
+        },
+        "max_supersede_depth": {
+          "default": 2,
+          "title": "Max Supersede Depth",
+          "type": "integer"
+        },
+        "poll_sec": {
+          "default": 30,
+          "title": "Poll Sec",
+          "type": "integer"
+        },
+        "scan_lookback_sec": {
+          "default": 259200,
+          "title": "Scan Lookback Sec",
+          "type": "integer"
+        },
+        "supersede_deadline_sec": {
+          "default": 3600,
+          "title": "Supersede Deadline Sec",
+          "type": "integer"
+        },
+        "window_sec": {
+          "default": 300,
+          "title": "Window Sec",
+          "type": "integer"
+        }
+      },
+      "title": "BundleCfg",
+      "type": "object"
+    },
+    "DigestCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "runs": {
+          "default": [
+            "18:30",
+            "07:30"
+          ],
+          "items": {
+            "pattern": "^\\d{2}:\\d{2}$",
+            "type": "string"
+          },
+          "title": "Runs",
+          "type": "array"
+        },
+        "tz": {
+          "default": "Asia/Tokyo",
+          "title": "Tz",
+          "type": "string"
+        }
+      },
+      "title": "DigestCfg",
+      "type": "object"
+    },
+    "FetchCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "interval_sec": {
+          "default": 60,
+          "title": "Interval Sec",
+          "type": "integer"
+        },
+        "list_lookback_days": {
+          "default": 1,
+          "title": "List Lookback Days",
+          "type": "integer"
+        },
+        "pdf_retries": {
+          "default": 3,
+          "title": "Pdf Retries",
+          "type": "integer"
+        }
+      },
+      "title": "FetchCfg",
+      "type": "object"
+    },
+    "JudgeCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "api_base_url": {
+          "default": "https://api.typesafe.ai",
+          "title": "Api Base Url",
+          "type": "string"
+        },
+        "delayed_threshold_sec": {
+          "default": 300,
+          "title": "Delayed Threshold Sec",
+          "type": "integer"
+        },
+        "max_state_chars": {
+          "default": 40000,
+          "title": "Max State Chars",
+          "type": "integer"
+        },
+        "models": {
+          "default": [
+            "jev-latest",
+            "jev-preview"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "question_version": {
+          "default": "v2",
+          "title": "Question Version",
+          "type": "string"
+        },
+        "retries": {
+          "default": 3,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "state_version": {
+          "default": "v2",
+          "title": "State Version",
+          "type": "string"
+        },
+        "timeout_sec": {
+          "default": 10,
+          "title": "Timeout Sec",
+          "type": "integer"
+        }
+      },
+      "title": "JudgeCfg",
+      "type": "object"
+    },
+    "MarketCacheCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "run_at": {
+          "default": "06:30",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "title": "Run At",
+          "type": "string"
+        },
+        "topix_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topix Source"
+        }
+      },
+      "title": "MarketCacheCfg",
+      "type": "object"
+    },
+    "MarketCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "pre_open_from": {
+          "default": "08:00",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "title": "Pre Open From",
+          "type": "string"
+        },
+        "session_close": {
+          "default": "15:00",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "title": "Session Close",
+          "type": "string"
+        },
+        "session_open": {
+          "default": "09:00",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "title": "Session Open",
+          "type": "string"
+        },
+        "tz": {
+          "default": "Asia/Tokyo",
+          "title": "Tz",
+          "type": "string"
+        }
+      },
+      "title": "MarketCfg",
+      "type": "object"
+    },
+    "MonitorCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "daily_cost_limit_jpy": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daily Cost Limit Jpy"
+        },
+        "disk_alert_pct": {
+          "default": 80,
+          "title": "Disk Alert Pct",
+          "type": "integer"
+        },
+        "heartbeat_sec": {
+          "default": 60,
+          "title": "Heartbeat Sec",
+          "type": "integer"
+        },
+        "missing_beats_alert": {
+          "default": 3,
+          "title": "Missing Beats Alert",
+          "type": "integer"
+        }
+      },
+      "title": "MonitorCfg",
+      "type": "object"
+    },
+    "PathsCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "config_dir": {
+          "default": "config",
+          "title": "Config Dir",
+          "type": "string"
+        },
+        "contracts_dir": {
+          "default": "docs/contracts",
+          "title": "Contracts Dir",
+          "type": "string"
+        }
+      },
+      "title": "PathsCfg",
+      "type": "object"
+    },
+    "StateCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "excerpt_chars": {
+          "default": 2000,
+          "title": "Excerpt Chars",
+          "type": "integer"
+        },
+        "max_excerpts": {
+          "default": 4,
+          "title": "Max Excerpts",
+          "type": "integer"
+        },
+        "max_secondary_bodies": {
+          "default": 2,
+          "title": "Max Secondary Bodies",
+          "type": "integer"
+        },
+        "recent_days": {
+          "default": 30,
+          "title": "Recent Days",
+          "type": "integer"
+        },
+        "report_min_chars": {
+          "default": 50000,
+          "title": "Report Min Chars",
+          "type": "integer"
+        },
+        "report_min_headings": {
+          "default": 5,
+          "title": "Report Min Headings",
+          "type": "integer"
+        }
+      },
+      "title": "StateCfg",
+      "type": "object"
+    },
+    "StorageCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "db_path": {
+          "default": "data/db/jevfwd.sqlite",
+          "title": "Db Path",
+          "type": "string"
+        },
+        "raw_pdf_dir": {
+          "default": "data/raw/pdf",
+          "title": "Raw Pdf Dir",
+          "type": "string"
+        },
+        "raw_pdf_retention_days": {
+          "default": 30,
+          "title": "Raw Pdf Retention Days",
+          "type": "integer"
+        }
+      },
+      "title": "StorageCfg",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bundle": {
+      "$ref": "#/$defs/BundleCfg",
+      "default": {
+        "catchup_factor": 10,
+        "grace_sec": 120,
+        "max_per_cycle": 200,
+        "max_supersede_depth": 2,
+        "poll_sec": 30,
+        "scan_lookback_sec": 259200,
+        "supersede_deadline_sec": 3600,
+        "window_sec": 300
+      }
+    },
+    "calendar_version": {
+      "default": "v1",
+      "title": "Calendar Version",
+      "type": "string"
+    },
+    "digest": {
+      "$ref": "#/$defs/DigestCfg",
+      "default": {
+        "runs": [
+          "18:30",
+          "07:30"
+        ],
+        "tz": "Asia/Tokyo"
+      }
+    },
+    "entry_rules_version": {
+      "default": "v1",
+      "title": "Entry Rules Version",
+      "type": "string"
+    },
+    "fetch": {
+      "$ref": "#/$defs/FetchCfg",
+      "default": {
+        "interval_sec": 60,
+        "list_lookback_days": 1,
+        "pdf_retries": 3
+      }
+    },
+    "filters_version": {
+      "default": "v1",
+      "title": "Filters Version",
+      "type": "string"
+    },
+    "judge": {
+      "$ref": "#/$defs/JudgeCfg",
+      "default": {
+        "api_base_url": "https://api.typesafe.ai",
+        "delayed_threshold_sec": 300,
+        "max_state_chars": 40000,
+        "models": [
+          "jev-latest",
+          "jev-preview"
+        ],
+        "question_version": "v2",
+        "retries": 3,
+        "state_version": "v2",
+        "timeout_sec": 10
+      }
+    },
+    "market": {
+      "$ref": "#/$defs/MarketCfg",
+      "default": {
+        "pre_open_from": "08:00",
+        "session_close": "15:00",
+        "session_open": "09:00",
+        "tz": "Asia/Tokyo"
+      }
+    },
+    "market_cache": {
+      "$ref": "#/$defs/MarketCacheCfg",
+      "default": {
+        "enabled": false,
+        "run_at": "06:30",
+        "topix_source": null
+      }
+    },
+    "monitor": {
+      "$ref": "#/$defs/MonitorCfg",
+      "default": {
+        "daily_cost_limit_jpy": null,
+        "disk_alert_pct": 80,
+        "heartbeat_sec": 60,
+        "missing_beats_alert": 3
+      }
+    },
+    "paths": {
+      "$ref": "#/$defs/PathsCfg",
+      "default": {
+        "config_dir": "config",
+        "contracts_dir": "docs/contracts"
+      }
+    },
+    "state": {
+      "$ref": "#/$defs/StateCfg",
+      "default": {
+        "excerpt_chars": 2000,
+        "max_excerpts": 4,
+        "max_secondary_bodies": 2,
+        "recent_days": 30,
+        "report_min_chars": 50000,
+        "report_min_headings": 5
+      }
+    },
+    "storage": {
+      "$ref": "#/$defs/StorageCfg",
+      "default": {
+        "db_path": "data/db/jevfwd.sqlite",
+        "raw_pdf_dir": "data/raw/pdf",
+        "raw_pdf_retention_days": 30
+      }
+    }
+  },
+  "title": "Settings",
+  "type": "object"
+}

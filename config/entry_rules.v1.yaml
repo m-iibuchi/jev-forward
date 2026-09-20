@@ -1,0 +1,21 @@
+# エントリー条件・出口ルール v1（要件3章・8章、基本設計5章、ADR 005・006・011・012）。
+# このファイルは変更しない。変えるときは entry_rules.v2.yaml を作り、settings.yaml の entry_rules_version を上げ、件数をリセットする。
+version: v1
+entry:
+  direction_up_min: 0.80
+  confidence_min: 0.60
+  market_cap_max_jpy: 100000000000
+  avg_turnover_20d_min_jpy: 100000000
+  pre_return_20d_vs_topix_max: 0.10
+  max_new_positions_per_day: 3
+exit:
+  time_exit_days: 20
+  stop_loss: -0.08
+  thesis_broken_categories: [下方修正, 不祥事, 監理]   # 意味の確定は task 015
+  day1_fade: record_only
+sizing:
+  position_pct: 0.05
+  max_positions: 10
+cost:
+  commission_roundtrip: 0.001
+  slippage: 0.002
