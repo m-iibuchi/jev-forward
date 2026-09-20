@@ -1,7 +1,7 @@
 # detailed — モジュール別の詳細設計（契約＋受入テスト）
 
 基本設計書（`docs/基本設計書.md`）の各モジュールを、実装者（人・モデルを問わず）が迷わず書ける粒度に落としたもの。
-実装セッションは対応するファイルを読み、**受入テスト一覧を先に `tests/test_*.py` に写してから**実装する（task 009 の kickoff）。
+実装セッションは対応するファイルを読み、**受入テスト一覧を先に `tests/test_*.py` に写してから**実装する（セッションの区切りと貼る文は `docs/実装セッション指示.md`）。テストはすべて Docker の `dev` コンテナ内で回す（03-CLI 4章）。
 
 ## ファイル一覧
 
@@ -9,10 +9,10 @@
 |---|---|---|---|---|
 | 00 | [00-共通規約.md](00-共通規約.md) | 全モジュール共通（時刻・コード・JSON・例外・境界・テスト規約） | M1 | 2026-09-20 初版 |
 | 01 | [01-凍結ログ.md](01-凍結ログ.md) | `store/`（schema.sql 全文、db、rows、repo、queries、freeze、migrations） | M1 | 2026-09-20 初版 |
-| 02 | [02-設定.md](02-設定.md) | `settings.py`（settings / entry_rules / filters / 秘密）、`judge/questions.py` | M1 | 2026-09-20 初版 |
-| 03 | [03-CLI.md](03-CLI.md) | `cli.py`（`init-db` `freeze-questions` `freeze-state`、未実装スタブ） | M1 | 2026-09-20 初版 |
-| 04 | [04-束ね.md](04-束ね.md) | `bundle/`（grouper、filters、runner、カレンダー） | M3 | 2026-09-20 初版 |
-| 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版 |
+| 02 | [02-設定.md](02-設定.md) | `settings.py`（settings / entry_rules / filters / 秘密）、`judge/questions.py` | M1 | 2026-09-20 初版、同日追補（`bundle.poll_sec`。task 017） |
+| 03 | [03-CLI.md](03-CLI.md) | `cli.py`（`init-db` `freeze-questions` `freeze-state`、`bundle`、未実装スタブ） | M1（`bundle` は M3） | 2026-09-20 初版、同日追補（3.8 `bundle`、`cmd_bundle`、Docker 内での実行。task 017） |
+| 04 | [04-束ね.md](04-束ね.md) | `bundle/`（grouper、filters、runner、カレンダー） | M3 | 2026-09-20 初版、同日追補（`run_once` に `state_of` 注入、T04-35。task 017） |
+| 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版、同日追補（`IssuerInput`、INSERT の書き手。task 017） |
 | 06 | 06-取得.md | `fetch/` | M2 | task 001 が done になるまで書かない |
 | 07 | 07-判定.md | `judge/client.py`、judge_worker | M4 | task 002 が done になるまで書かない |
 | 08 | 08-監視通知.md | `monitor/`、ledger 算出、バックアップ | M5 | — |

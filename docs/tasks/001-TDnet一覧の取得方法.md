@@ -4,7 +4,7 @@
 - Owner: human
 - Blocks: `docs/detailed/06-取得.md`、M2、段階1
 - Created: 2026-09-20
-- Related: 要件F1-1、10章、基本設計3.1、kickoff セッション2の【】
+- Related: 要件F1-1、10章、基本設計3.1、`docs/実装セッション指示.md` セッション 2（06 に移す要点）
 
 ## 内容
 TDnet の新着一覧を1分周期で機械取得する方法を確定する。候補：

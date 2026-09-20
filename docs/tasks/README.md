@@ -43,7 +43,6 @@
 | 003 | [J-Quants Light / Standard の決定](003-JQuantsプランの決定.md) | open | human | 08-score 詳細設計、market_cache |
 | 004 | [コストモデルの数値確定](004-コストモデルの数値.md) | open | human | settings.yaml、日次コスト監視 |
 | 005 | [前回予想・前期実績のXBRL抽出範囲の決定](005-前回予想のXBRL抽出.md) | open | any | F2-3、SUEベースライン |
-| 009 | [kickoff の書き換え（詳細設計参照型）](009-実装指示の書き換え.md) | open | claude | 実装セッション開始 |
 | 010 | [特別気配（寄らず）の判定方法](010-特別気配の判定.md) | open | any | F5-2 |
 | 011 | [東証営業日カレンダーの確定](011-営業日カレンダー.md) | in_progress | human | trading_calendar.v1.yaml の人手突合（段階2まで） |
 | 012 | [9/24以降の答え合わせを検証ログに追記](012-答え合わせの追記.md) | open | human | — |
@@ -59,3 +58,5 @@
 | 008 | [詳細設計 M3](archive/008-詳細設計M3.md) | `docs/detailed/04〜05`、ADR 022〜026 | 2026-09-20 |
 | 013 | [暫定判定→本判定のときの state の置き場](archive/013-暫定判定のstateの置き場.md) | superseding bundle（ADR 024） | 2026-09-20 |
 | 014 | [filters の除外判定と市場区分の役割分担](archive/014-コード除外パターンと市場区分.md) | 判定順序を固定、段階1の穴を許容（04-束ね 4.5・4.6） | 2026-09-20 |
+| 009 | [kickoff の書き換え（詳細設計参照型）](archive/009-実装指示の書き換え.md) | `docs/実装セッション指示.md` を全面改稿（1a/1b/3a/3b、Docker 内で実行） | 2026-09-20 |
+| 017 | [`bundles.state_json` の書き手（04/05 の食い違い）](archive/017-bundle_state_jsonの書き手.md) | `run_once` に `state_of` を注入（04 ★11、05 ★11、03 の 3.8） | 2026-09-20 |
