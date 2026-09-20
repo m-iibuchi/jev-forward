@@ -33,6 +33,11 @@
           "title": "Scan Lookback Sec",
           "type": "integer"
         },
+        "stuck_margin_sec": {
+          "default": 600,
+          "title": "Stuck Margin Sec",
+          "type": "integer"
+        },
         "supersede_deadline_sec": {
           "default": 3600,
           "title": "Supersede Deadline Sec",
@@ -328,6 +333,7 @@
         "max_supersede_depth": 2,
         "poll_sec": 30,
         "scan_lookback_sec": 259200,
+        "stuck_margin_sec": 600,
         "supersede_deadline_sec": 3600,
         "window_sec": 300
       }

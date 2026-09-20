@@ -71,6 +71,7 @@ class BundleCfg(_Strict):
     max_per_cycle: int = 200
     catchup_factor: int = 10
     poll_sec: int = 30
+    stuck_margin_sec: int = 600                 # grace_sec にこれを足した滞留は障害（04-束ね 5章）
 
 
 class JudgeCfg(_Strict):
