@@ -3,7 +3,7 @@
 - 対象：`cli.py`、`pyproject.toml` の `[project.scripts]`
 - マイルストーン：M1（`init-db` `freeze-questions` `freeze-state` と `--help`。他サブコマンドはスタブ）
 - 関連：CLAUDE.md ルール2、要件 F3-6、基本設計 2章・8章 M1、ADR 014・020、01-凍結ログ、02-設定
-- 版：2026-09-20 初版
+- 版：2026-09-20 初版（同日 M3 追補：`bundle` サブコマンド、T03-15 の確定）
 
 ## 1. 責務
 
@@ -29,6 +29,7 @@ jevfwd [--config PATH] [--log-level LEVEL] [--version] <subcommand> [options]
   freeze-state     --version vN [--file PATH]
   fetch            [--once]        M2
   heartbeat        [--once]        M2
+  bundle           [--once]        M3
   judge            [--once] [--bundle ID]   M4
   market-cache     [--once]        M6
   score                            M6
@@ -40,7 +41,8 @@ jevfwd [--config PATH] [--log-level LEVEL] [--version] <subcommand> [options]
 - `--config PATH`：`settings.yaml` の場所。`resolve_settings_path(cli_arg, env)`（02-設定）で `--config` → `$JEVFWD_CONFIG` → `config/settings.yaml`
 - `--log-level`：`DEBUG|INFO|WARNING|ERROR`、既定 `INFO`。stdout に `%(asctime)s %(levelname)s %(name)s %(message)s`、時刻は UTC（`logging.Formatter.converter = time.gmtime`）。`SecretMaskFilter`（00-共通規約）をルートロガーに付ける
 - `--version`：`jevfwd <importlib.metadata.version("jevfwd")>` を出して exit 0
-- サブコマンド名はハイフン区切り（`init-db` `freeze-questions` `market-cache`）。基本設計2章の `cli.py` コメントの一覧に `init-db` を加える（★）
+- サブコマンド名はハイフン区切り（`init-db` `freeze-questions` `market-cache`）。基本設計2章の `cli.py` コメントの一覧に `init-db` と `bundle` を加える（★）
+- `bundle` は束ね〜state構築〜判定キューを回すプロセス（M3）。`bundle` `state` `judge` を横断して繋ぐのは `cli` の役目（00-共通規約 8章）
 
 ### 3.2 終了コード
 
@@ -83,14 +85,14 @@ jevfwd [--config PATH] [--log-level LEVEL] [--version] <subcommand> [options]
 
 `freeze-questions` と同じ手順で、既定パス `settings.state_schema_path(vN)`（`docs/contracts/state.vN.schema.json`）、検証は `json.loads` が object であることと `"$schema"` キーの存在、`freeze_version(table="state_versions", …)`（`spec` 列）。
 
-`docs/contracts/state.v2.schema.json` は task 006（M3）で作る。M1 の受入テストは `tmp_path` に置いた最小の JSON Schema で行い、task 006 完了時に実ファイルのテスト（T03-15 予約）を追加する。
+`docs/contracts/state.v2.schema.json` は task 006 で作成済み（2026-09-20）。`tmp_path` の最小スキーマでのテスト（T03-16）に加えて、実ファイルのテスト（T03-15）を行う。
 
-### 3.7 スタブ（`fetch` `heartbeat` `judge` `market-cache` `score` `digest` `paper` `report`）
+### 3.7 スタブ（`fetch` `heartbeat` `bundle` `judge` `market-cache` `score` `digest` `paper` `report`）
 
 ```
 ERROR: サブコマンド fetch は未実装（M2 で実装。docs/detailed/06-取得.md）
 ```
-を stderr に出して exit 1。対応表：fetch/heartbeat → M2、judge → M4、market-cache/score → M6、digest/paper → M7、report → M8。
+を stderr に出して exit 1。対応表：fetch/heartbeat → M2、bundle → M3（`docs/detailed/04-束ね.md` `05-state構築.md`）、judge → M4、market-cache/score → M6、digest/paper → M7、report → M8。
 
 ## 4. データ契約
 
@@ -185,10 +187,10 @@ def cmd_freeze_state(args, settings) -> int:
 
 | ID | テスト関数 | 前提・入力 | 期待 | fixture |
 |---|---|---|---|---|
-| T03-01 | `test_help_lists_all_subcommands` | `run("--help")` | `SystemExit(0)`、stdout に `init-db` `fetch` `judge` `heartbeat` `digest` `market-cache` `score` `paper` `report` `freeze-questions` `freeze-state` の11語すべて | — |
+| T03-01 | `test_help_lists_all_subcommands` | `run("--help")` | `SystemExit(0)`、stdout に `init-db` `fetch` `bundle` `judge` `heartbeat` `digest` `market-cache` `score` `paper` `report` `freeze-questions` `freeze-state` の12語すべて | — |
 | T03-02 | `test_unknown_subcommand_exit_2` | `run("frobnicate")` | `SystemExit(2)`、stderr に `invalid choice` | — |
 | T03-03 | `test_no_subcommand_exit_2` | `run()` | `SystemExit(2)` | — |
-| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 8スタブ | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
+| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 9スタブ | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`bundle`→`M3`、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
 | T03-05 | `test_version_flag` | `run("--version")` | `SystemExit(0)`、stdout が `jevfwd 0.1.0` で始まる | — |
 | T03-06 | `test_init_db_creates_and_is_idempotent` | `run("--config", cfg, "init-db")` を2回 | 両方 0。stdout に `schema_version=1`。DB に `schema_version` 1行、トリガー18本 | — |
 | T03-07 | `test_freeze_questions_before_init_db_exit_3` | `init-db` せずに `freeze-questions --version v2` | 3。stderr に `init-db` | `config/questions.v2.json` |
@@ -199,7 +201,7 @@ def cmd_freeze_state(args, settings) -> int:
 | T03-12 | `test_freeze_questions_missing_file_exit_1` | `freeze-questions --version v9` | 1。stderr に `questions.v9.json`。行数 0 | — |
 | T03-13 | `test_freeze_questions_version_mismatch_exit_1` | v2 本文を `tmp_path/"questions.v3.json"` にコピーして `--version v3 --file …` | 1（`_version=v2` と不一致）。行数 0 | `config/questions.v2.json` |
 | T03-14 | `test_freeze_questions_bom_rejected` | v2 本文の先頭に BOM を付けたファイルを `--file` | 1。行数 0 | `config/questions.v2.json` |
-| T03-15 | （予約）`test_freeze_state_v2_real_schema` | task 006 で `docs/contracts/state.v2.schema.json` ができたら追加 | — | — |
+| T03-15 | `test_freeze_state_v2_real_schema` | `paths.contracts_dir` をリポジトリの `docs/contracts/` にして `freeze-state --version v2` | 0。stdout が `frozen state_version=v2 sha256=` で始まる。`state_versions` の `spec` が `docs/contracts/state.v2.schema.json` の本文とバイト一致。2回目は `already frozen` | `docs/contracts/state.v2.schema.json` |
 | T03-16 | `test_freeze_state_with_tmp_schema` | `tmp_path/"contracts"/"state.v2.schema.json"` に `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}` を置き `freeze-state --version v2` を2回 | 1回目 0 `frozen state_version=v2 sha256=<ファイルの sha>`、2回目 0 `already frozen`。`state_versions` 1行、`spec` がファイル本文と一致 | — |
 | T03-17 | `test_freeze_state_rejects_non_schema` | `[]` だけのファイル／`$schema` の無い `{}` | 1、行数 0 | — |
 | T03-18 | `test_missing_config_exit_1` | `--config /nonexistent.yaml init-db` | 1、stderr にパス | — |
@@ -210,7 +212,7 @@ def cmd_freeze_state(args, settings) -> int:
 
 ## 9. 完了条件
 
-- T03-01〜T03-14、T03-16〜T03-22 が通る（T03-15 は task 006 後）
+- T03-01〜T03-22 が通る
 - `python -m jevfwd.cli --help` と `jevfwd --help`（`pip install -e .` 後）が同じ出力
 - `docs/事前宣言.md` に貼る `frozen question_version=v2 …` の行が `freeze-questions` の stdout から得られる（実行は段階2開始時、人が行う）
 
@@ -219,5 +221,6 @@ def cmd_freeze_state(args, settings) -> int:
 | ★ | 変更 | 基本設計書の修正箇所 |
 |---|---|---|
 | 1 | サブコマンド `init-db` を追加（明示マイグレーション。ワーカーは自動マイグレーションしない） | 2章 `cli.py` のコメント、8章 M1 |
+| 4 | サブコマンド `bundle` を追加（M3 の束ね〜state〜判定キューのプロセス） | 2章 `cli.py` のコメント、8章 M3 |
 | 2 | 終了コード 3（スキーマ不一致）を予約 | — |
 | 3 | `freeze-*` の既定パスは `settings.yaml` の `paths.*` から。`--config-dir` 引数は設けない | — |

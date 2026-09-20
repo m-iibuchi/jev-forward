@@ -1,6 +1,6 @@
 # 013: 暫定判定→本判定のときの state の置き場
 
-- Status: open
+- Status: done
 - Owner: claude
 - Blocks: `docs/detailed/05-state構築.md`、`docs/detailed/07-判定.md`（M3 / M4）
 - Created: 2026-09-20
@@ -20,3 +20,4 @@ ADR 015 は「表題のみで暫定判定した bundle に PDF が後から到�
 
 ## メモ
 - 2026-09-20：詳細設計 01 の DDL は基本設計4章の列構成を保った。暫定判定の頻度（PDF 取得失敗率）を M2 で見てから決めてよい
+- 2026-09-20：選択肢1〜3のいずれも採らず、**superseding bundle**（ADR 024）に決めた。`events` が追記専用である以上、後から届く PDF は新しい event 行になるので、同じ bundle を使い回せない。暫定 state は旧 bundle の `state_json`、本判定の state は新 bundle の `state_json`。列も表も増えない。詳細設計 04-束ね 4.8、05-state構築 4.8。done。

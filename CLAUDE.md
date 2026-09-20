@@ -7,7 +7,7 @@
 ドキュメント系ファイル（`docs/` 配下の .md）の名前は日本語にする。`README.md` と `CLAUDE.md` は慣例名のまま。コードや設定から参照するファイル（JSON Schema、YAML、.py、fixtures）は英語のまま。
 
 - `docs/adr/`：設計判断の記録。1判断1ファイル、`NNN-日本語タイトル.md`、書式と一覧は `docs/adr/README.md`。既存ADRの Decision は書き換えず、変えるときは新ADRで Supersede する
-- `docs/tasks/`：作業中に挙がった未決・後回し・人手確認。1件1ファイル、書式と一覧は `docs/tasks/README.md`。実装中に判断が要る箇所を見つけたら、まずここに起票し、仮定を明示して進める
+- `docs/tasks/`：作業中に挙がった未決・後回し・人手確認。1件1ファイル、書式と一覧は `docs/tasks/README.md`。完了したものは `docs/tasks/archive/` に移す（削除はしない。番号は通し）。実装中に判断が要る箇所を見つけたら、まずここに起票し、仮定を明示して進める
 - `docs/detailed/`：モジュール別の詳細設計（責務・公開インターフェース・データ契約・エラー時の振る舞い・受入テスト一覧）
 - `docs/contracts/`：JSON Schema 等のデータ契約。state の書式は `state.v2.schema.json` が正
 

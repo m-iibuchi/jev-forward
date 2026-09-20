@@ -11,8 +11,8 @@
 | 01 | [01-凍結ログ.md](01-凍結ログ.md) | `store/`（schema.sql 全文、db、rows、repo、queries、freeze、migrations） | M1 | 2026-09-20 初版 |
 | 02 | [02-設定.md](02-設定.md) | `settings.py`（settings / entry_rules / filters / 秘密）、`judge/questions.py` | M1 | 2026-09-20 初版 |
 | 03 | [03-CLI.md](03-CLI.md) | `cli.py`（`init-db` `freeze-questions` `freeze-state`、未実装スタブ） | M1 | 2026-09-20 初版 |
-| 04 | 04-束ね.md | `bundle/`（grouper、filters の分類） | M3 | task 008 |
-| 05 | 05-state構築.md | `state/`（builder、truncate、context） | M3 | task 008、task 006 |
+| 04 | [04-束ね.md](04-束ね.md) | `bundle/`（grouper、filters、runner、カレンダー） | M3 | 2026-09-20 初版 |
+| 05 | [05-state構築.md](05-state構築.md) | `state/`（builder、truncate、context、state.v2.schema.json） | M3 | 2026-09-20 初版 |
 | 06 | 06-取得.md | `fetch/` | M2 | task 001 が done になるまで書かない |
 | 07 | 07-判定.md | `judge/client.py`、judge_worker | M4 | task 002 が done になるまで書かない |
 | 08 | 08-監視通知.md | `monitor/`、ledger 算出、バックアップ | M5 | — |
@@ -37,8 +37,8 @@
 
 - `Tnn-mm`：`nn` は詳細設計のファイル番号、`mm` は2桁通し。欠番・再利用なし
 - テスト関数は英語名、docstring の1行目に ID を書く（例：`"""T01-07: UPDATE は 9 テーブルすべてで IntegrityError"""`）
-- テストは `tests/test_<対象>.py` に置く。01 → `tests/test_store.py`、02 → `tests/test_settings.py` と `tests/test_questions.py`、03 → `tests/test_cli.py`、00 → `tests/test_conventions.py` と `tests/test_common.py`
-- fixture は `tests/fixtures/` の実ファイルを使う。受入テストの表にファイル名を書く（存在しないファイルを指さない）
+- テストは `tests/test_<対象>.py` に置く。01 → `tests/test_store.py`、02 → `tests/test_settings.py` と `tests/test_questions.py`、03 → `tests/test_cli.py`、04 → `tests/test_bundle.py`、05 → `tests/test_state.py`、00 → `tests/test_conventions.py` と `tests/test_common.py`
+- fixture は `tests/fixtures/` の実ファイルを使う。受入テストの表にファイル名を書く（存在しないファイルを指さない）。読むときは `read_text(encoding="utf-8")`（CRLF。00-共通規約 13章）
 
 ## 写経の手順（実装セッション向け）
 
