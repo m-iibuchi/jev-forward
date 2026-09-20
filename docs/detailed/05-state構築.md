@@ -3,7 +3,7 @@
 - 対象：`state/builder.py` `state/truncate.py` `state/context.py`、`docs/contracts/state.v2.schema.json`
 - マイルストーン：M3（`market_context` は段階1では null。実データは M6）
 - 関連：CLAUDE.md ルール2・4・6、要件 F2-1〜F2-6、基本設計 3.3、ADR 002・015・017・020・024・026、task 005・006・013
-- 版：2026-09-20 初版（同日追補：`bundles` への INSERT は `runner` が `state_of` 経由で行う。task 017）
+- 版：2026-09-20 初版（同日追補：`bundles` への INSERT は `runner` が `state_of` 経由で行う。task 017／`MarketContextProvider.source`、T05-08 を M6 へ、★12〜★13。task 025／章抜粋のキーワードは章題の末尾で探す、★14。task 026）
 
 ## 1. 責務
 
@@ -41,6 +41,10 @@ class DocInput:
     body: str | None               # PDF 取得失敗・未着なら None（表題のみ）
     rank: int
 
+def join_bodies(bodies: Sequence[str | None]) -> str | None:
+    """連番の論理開示の本文を logical_docs_json の順に連結する（4.3）。全件 None なら None。
+    cli.cmd_bundle が DocInput を組むときに使う（03-CLI 3.8）"""
+
 @dataclass(frozen=True, slots=True)
 class StateResult:
     state_json: str                # Jev に送る文字列そのもの。bundles.state_json に生のまま入れる
@@ -62,6 +66,7 @@ def build_state(*, issuer: IssuerInput, anchor_published_at: str, session: str,
 ```python
 class MarketContextProvider(Protocol):
     """market_cache（ADR 017）由来。段階1（market_cache.enabled=false）では全項目 null"""
+    source: str            # completeness.sources["market_context"] に入れる値（"null" / "db"）
     def market_context(self, code5: str, anchor_utc: str, session: str) -> tuple[dict, list[str]]: ...
         # 返り値は (market_context の dict, 欠損項目のパス)
 
@@ -71,7 +76,7 @@ class DisclosureContext(Protocol):
     def forecast_context(self, code5: str, event_ids: Sequence[int]) -> dict | None: ...
 
 class NullMarketContext(MarketContextProvider):  # 段階1。4項目すべて null を返す
-class DbMarketContext(MarketContextProvider):    # M6。market.prices / listed_master を queries 経由で読む
+class DbMarketContext(MarketContextProvider):    # M6（task 025）。prices / listed_master を queries 経由で読む
 class DbDisclosureContext(DisclosureContext):    # queries.recent_titles と events.xbrl_json
 ```
 
@@ -162,12 +167,14 @@ HEADING = re.compile(r"^第[0-9０-９]+[ 　]\S")      # 第と数字の間に�
 LEADER  = re.compile(r"\.{10,}|・{10,}|…{5,}")      # 目次のドットリーダー
 PAGENO  = re.compile(r"^[0-9]{1,3}$")                # 章の直前に挟まる頁番号の行
 SECTION_KEYS = ("原因", "評価", "結論", "結語", "再発防止", "提言")
+SECTION_KEY_TAIL_CHARS = 12                          # キーワードは章題の末尾側だけで探す（task 026）
 ```
 
 - `is_report_like`：本文が `state.report_min_chars`（既定 50,000）以上で、かつ `HEADING` に一致する短い行（60文字未満）が `state.report_min_headings`（既定 5）以上、または `LEADER` を含む行が 20 以上
-- `extract_sections`：`HEADING` の行のうち見出し文字列が `SECTION_KEYS` のいずれかを含むものを上から順に、次の `HEADING` 行までを章とし、`PAGENO` だけの行を除いて先頭 `state.excerpt_chars`（既定 2,000）字を取る。最大4章（＝最大 8,000 字）
+- `extract_sections`：`HEADING` の行のうち、**見出しの末尾 `SECTION_KEY_TAIL_CHARS` 文字**に `SECTION_KEYS` のいずれかを含むものを上から順に、次の `HEADING` 行までを章とし、`PAGENO` だけの行を除いて先頭 `state.excerpt_chars`（既定 2,000）字を取る。最大4章（＝最大 8,000 字）
+- 末尾側だけで探すのは、章の主題が章題の終わりに来るため。見出し全体で探すと `第4 中部電力による地震動評価及び基準地震動の策定に関して本委員会が認定した事実` が `評価` に当たる（task 026）
 - 抜粋は `primary.body` を書き換えず `primary.excerpts` に置く（ADR 026）。どこが原文でどこが抜粋かを後から見分けられるようにする
-- `9502` で拾えるのは `第6 原因分析`・`第7 再発防止策の提言`・`第8 結語` の3章。**要件 F2-4 の「結論」はこの報告書では「結語」**なので、キーワードに `結語` と `提言` を足した（★4）
+- `9502` で拾えるのは `第6 原因分析`・`第7 再発防止策の提言`・`第8 結語` の3章。**要件 F2-4 の「結論」はこの報告書では「結語」**なので、キーワードに `結語` と `提言` を足した（★4）。`第4 …認定した事実` は末尾規則で落ちる（★14）
 
 ### 4.6 `state_completeness`
 
@@ -205,7 +212,7 @@ ADR 024（04-束ね 4.8）で、PDF が後から届いた場合は superseding b
 |---|---|
 | 切り詰めが5回で収束しない | `JevfwdError`。`bundle/runner.py` が捕まえ、state 列 NULL・`flags` に `state_error:JevfwdError` の bundle 行を残す（04-束ね 5章、task 017）。判定側（07-判定）がその bundle に `judgments` のエラー行を残す（判定はしない） |
 | `state_version` が未凍結 | `JudgeError`（判定側。02-設定 3.2 `render_from_db` と同じ扱い） |
-| 生成した state が schema に合わない | `JevfwdError`。**送る前に落とす**（凍結ログに不正な state を残さない）。bundle 行の扱いは上と同じ（`state_error:*`） |
+| 生成した state が自己検査に落ちる | `JevfwdError`。**送る前に落とす**（凍結ログに不正な state を残さない）。bundle 行の扱いは上と同じ（`state_error:*`）。自己検査は builder が作る不変条件（`issuer.code` と `published_at` の書式、`state_version`、`primary.title` が空でない、予算内）だけを見る。schema 全文の検証は受入テストの `tests/schema_check.py` と、M4 の送信前検査（07-判定。凍結済みの `state_versions.spec` と突き合わせる）が行う |
 | 本文がすべて None | 例外にしない。表題のみの state ＋ `provisional_only` |
 | `market_context` が取れない | 例外にしない。null ＋ `completeness.missing` |
 | `issuer.company` が空 | `ValueError`（問いの主語が空になる。ADR 002 の前提が崩れる）。`cli.cmd_bundle` の `state_of` が `JevfwdError` に包んで投げ直す（`runner` は `JevfwdError` だけを行として残す） |
@@ -302,11 +309,12 @@ schema 検証は `docs/contracts/state.v2.schema.json` を読み、テスト側�
 | T05-06 | `test_null_market_context_records_missing` | `NullMarketContext` | `market_context` の4項目が null（キーは存在する）、`completeness.missing` に4項目、`sources.market_context == "null"` | — |
 | T05-07 | `test_recent_disclosures_excludes_same_minute` | 同一銘柄で anchor と同時刻の開示、1分前の開示、31日前の開示 | `recent_disclosures_30d` に1分前だけが入る（同時刻は入らない、31日前も入らない） | — |
 | T05-08 | `test_prev_close_uses_last_completed_bar` | `DbMarketContext`、`prices` に anchor 前日までの日足と anchor 当日の日足 | `prev_close` は anchor より前に確定した最新の日足（当日分を使わない） | — |
+| | **M6 に送る（task 025）**：`DbMarketContext` は 09-市場データ で実装する。段階1は `market_cache.enabled: false` で動かず、`prices.source_version` の選び方が task 003 待ちのため | | | |
 | T05-09 | `test_liberta_two_same_title_docs_in_state` | リベルタ 16:00 の同一表題2件（本文は `4935_liberta_3days_bundle.txt` の296行目・337行目の各位ブロック） | `primary` と `secondary[0]` の `title` が同じで `body` が違う。`other_titles` は空 | `4935_liberta_3days_bundle.txt` |
 | T05-10 | `test_secondary_bodies_capped_at_two` | 本文つき論理開示5件 | `secondary` は2件、残り2件の表題が `other_titles` | `6497_hamai_3core.txt` |
 | T05-11 | `test_short_state_not_truncated` | ほぼ日（1,691字） | `truncate.applied is False`、`flags` に `truncated` が無い、`state_chars == len(state_json)` | `3560_hobonichi_fiscal_year_change.txt` |
 | T05-12 | `test_chubu_report_fits_budget` | `9502_chubu_report_full.txt`（283,113字）を primary に | `state_chars <= 40000`、`json.dumps(state, ensure_ascii=False)` の長さも 40000 以下、`flags` に `truncated` | `9502_chubu_report_full.txt` |
-| T05-13 | `test_chubu_excerpts_are_the_real_chapters` | 同上 | `primary.excerpts` の `heading` が `第6 原因分析`・`第7 再発防止策の提言`・`第8 結語` を含み、`第6 原因分析` の `text` が「中部電力は、上記第 4 のとおり」で始まる | 同上 |
+| T05-13 | `test_chubu_excerpts_are_the_real_chapters` | 同上 | `primary.excerpts` の `heading` が `第6 原因分析`・`第7 再発防止策の提言`・`第8 結語` の**ちょうど3件**（`第4 …地震動評価…` は末尾規則で落ちる。task 026）で、`第6 原因分析` の `text` が「中部電力は、上記第 4 のとおり」で始まる | 同上 |
 | T05-14 | `test_chapter_heading_false_positives_rejected` | 同上の本文 | `chapter_headings` に `第 1 回ヘルプライン通報`・`第 624 回適合性審査会合`・`第一原子力発電所`・`第 6（222 頁から 234 頁）` が入らない。拾う見出しはちょうど8件（`第1 調査の概要`〜`第8 結語`） | 同上 |
 | T05-15 | `test_leopalace_bundle_truncated` | レオパレス（`8848_leopalace_tob_target_bundle_full.txt` の4ブロック、194,441字） | `state_chars <= 40000`、`secondary` の本文が null に落ちている件数が `truncate.secondary_bodies_dropped` と一致 | `8848_leopalace_tob_target_bundle_full.txt` |
 | T05-16 | `test_truncate_is_not_report_like_for_press_release` | `9227_microwave_growth_plan.txt`（25,789字、スライド） | `report_like is False`（`excerpts` を作らない） | `9227_microwave_growth_plan.txt` |
@@ -322,7 +330,7 @@ schema 検証は `docs/contracts/state.v2.schema.json` を読み、テスト側�
 
 ## 9. 完了条件
 
-- T05-01〜T05-25 が通る
+- T05-01〜T05-07・T05-09〜T05-25 が通る（T05-08 は M6。task 025）
 - `docs/contracts/state.v2.schema.json` が存在し、`jevfwd freeze-state --version v2` が成功する（03-CLI T03-15）
 - `state` が `bundle` `judge` を import していない（T00-14）
 - task 006 を done にする
@@ -342,3 +350,6 @@ schema 検証は `docs/contracts/state.v2.schema.json` を読み、テスト側�
 | 9 | `state.*` の設定キーを新設（`max_secondary_bodies` `excerpt_chars` `max_excerpts` `recent_days` `report_min_chars` `report_min_headings`） | 5章 |
 | 10 | 暫定 state と本判定 state は別 bundle に載る（ADR 024。task 013 の結論） | 3.4 |
 | 11 | state は bundle 行の INSERT **前**に組む。`bundles` への書き込みは `bundle/runner.py`（`state_of` 注入）に一本化し、`state` も `cli` も直接 INSERT しない（task 017、04-束ね ★11） | 3.2 の 8 |
+| 12 | `MarketContextProvider` に `source` を持たせ、`completeness.sources["market_context"]` を推測で埋めない（task 025） | なし（詳細設計内の補筆） |
+| 13 | 連番の本文の連結は `state.builder.join_bodies`（`cli.cmd_bundle` がこれを呼ぶ）。正規化と同じ場所に置く | なし（詳細設計内の補筆） |
+| 14 | 章抜粋のキーワードは章題の末尾12文字だけで探す（長い章題の途中の語に誤爆する。task 026） | なし（詳細設計内の補筆） |

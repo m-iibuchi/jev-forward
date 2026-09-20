@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 
 from conftest import CONFIG_DIR, CONTRACTS_DIR, REPO_ROOT
+from test_bundle import ROWS_17, insert_events, pick, views
+
 from jevfwd import cli
 from jevfwd.common.logutil import HANDLER_NAME
 from jevfwd.common.timeutil import is_utc_str
@@ -34,14 +36,14 @@ def _clean_logging():
         root.removeFilter(f)
 
 
-def _write_cfg(tmp_path: Path, contracts_dir: Path | None = None) -> str:
+def _write_cfg(tmp_path: Path, contracts_dir: Path | None = None, extra: str = "") -> str:
     path = tmp_path / "settings.yaml"
     path.write_text(
         "paths:\n"
         f"  config_dir: {CONFIG_DIR}\n"
         f"  contracts_dir: {contracts_dir or tmp_path / 'contracts'}\n"
         "storage:\n"
-        f"  db_path: {tmp_path / 'db.sqlite'}\n",
+        f"  db_path: {tmp_path / 'db.sqlite'}\n" + extra,
         encoding="utf-8",
     )
     return str(path)
@@ -101,6 +103,8 @@ def test_no_subcommand_exit_2(run):
 @pytest.mark.parametrize("name,milestone,doc", cli.STUBS, ids=[s[0] for s in cli.STUBS])
 def test_stub_subcommands_exit_1_with_milestone(run, cfg, name, milestone, doc):
     """T03-04: 未実装は黙って成功せず、どのマイルストーンで実装するかを言う。"""
+    # M3 で bundle を実装したのでスタブは8本（03-CLI 3.7）
+    assert len(cli.STUBS) == 8 and "bundle" not in {s[0] for s in cli.STUBS}
     code, out, err = run("--config", cfg, name)
     assert code == 1
     assert "未実装" in err and milestone in err
@@ -319,3 +323,38 @@ def test_logging_masks_secrets(run, cfg, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "sk-test-XYZ" not in out
     assert "key=***" in out
+
+
+# --- bundle（M3） ---------------------------------------------------------
+
+def test_bundle_once_creates_bundle_with_state(run, tmp_path):
+    """T03-23: fixture の events から bundle が1行でき、state_json が入る。"""
+    # fixture の公表時刻（2026-09-17）は既定の scan_lookback_sec（3日）より古い
+    cfg = _write_cfg(
+        tmp_path, contracts_dir=CONTRACTS_DIR, extra="bundle:\n  scan_lookback_sec: 31536000\n"
+    )
+    run("--config", cfg, "init-db")
+    run("--config", cfg, "freeze-state", "--version", "v2")   # state_version は外部キー
+    conn = db.connect(tmp_path / "db.sqlite")
+    try:
+        insert_events(conn, views(pick(ROWS_17, "35600", "17:30")))
+    finally:
+        conn.close()
+
+    code, out, err = run("--config", cfg, "bundle", "--once")
+    assert code == 0, err
+    assert out.startswith("bundles=1 ids=")
+
+    conn = db.connect(tmp_path / "db.sqlite")
+    try:
+        row = conn.execute("SELECT * FROM bundles").fetchone()
+    finally:
+        conn.close()
+    state = json.loads(row["state_json"])
+    assert row["state_version"] == "v2"
+    assert row["state_chars"] == len(row["state_json"])
+    assert state["issuer"]["code"] == "3560"
+    assert state["primary"]["title"] == "業績予想の修正に関するお知らせ"
+    assert json.loads(row["state_completeness_json"])["rules"]["state_version"] == "v2"
+
+    assert run("--config", cfg, "bundle", "--once")[1] == "bundles=0 ids=\n"

@@ -3,7 +3,7 @@
 - 対象：`cli.py`、`pyproject.toml` の `[project.scripts]`
 - マイルストーン：M1（`init-db` `freeze-questions` `freeze-state` と `--help`。他サブコマンドはスタブ）
 - 関連：CLAUDE.md ルール2、要件 F3-6、基本設計 2章・8章 M1、ADR 014・020、01-凍結ログ、02-設定
-- 版：2026-09-20 初版（同日 M3 追補：`bundle` サブコマンド、T03-15 の確定。同日追補2：`cmd_bundle` の擬似コードと `state_of` の組み立て（task 017）、`pyproject.toml` の `dev` extras、Docker 内での実行）
+- 版：2026-09-20 初版（同日 M3 追補：`bundle` サブコマンド、T03-15 の確定。同日追補2：`cmd_bundle` の擬似コードと `state_of` の組み立て（task 017）、`pyproject.toml` の `dev` extras、Docker 内での実行。同日追補3：`bundle` を実装して `STUBS` から外し、T03-23 を追加。task 021）
 
 ## 1. 責務
 
@@ -94,7 +94,7 @@ ERROR: サブコマンド fetch は未実装（M2 で実装。docs/detailed/06-�
 ```
 を stderr に出して exit 1。対応表：fetch/heartbeat → M2、bundle → M3（`docs/detailed/04-束ね.md` `05-state構築.md`）、judge → M4、market-cache/score → M6、digest/paper → M7、report → M8。
 
-各マイルストーンで実装したサブコマンドは `STUBS` から外す（M3 で `bundle` を外すと T03-04 のスタブは 8 本になる。表の期待値も同時に直す）。
+各マイルストーンで実装したサブコマンドは `STUBS` から外す。**M3 で `bundle` を外したので、いまのスタブは 8 本**（`fetch` `heartbeat` `judge` `market-cache` `score` `digest` `paper` `report`）。
 
 ### 3.8 `bundle [--once]`（M3 で実装。セッション 3b）
 
@@ -249,7 +249,7 @@ def cmd_freeze_state(args, settings) -> int:
 | T03-01 | `test_help_lists_all_subcommands` | `run("--help")` | `SystemExit(0)`、stdout に `init-db` `fetch` `bundle` `judge` `heartbeat` `digest` `market-cache` `score` `paper` `report` `freeze-questions` `freeze-state` の12語すべて | — |
 | T03-02 | `test_unknown_subcommand_exit_2` | `run("frobnicate")` | `SystemExit(2)`、stderr に `invalid choice` | — |
 | T03-03 | `test_no_subcommand_exit_2` | `run()` | `SystemExit(2)` | — |
-| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 9スタブ（M1 時点。M3 で `bundle` を外して 8 スタブにする） | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`bundle`→`M3`（M1 時点のみ）、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
+| T03-04 | `test_stub_subcommands_exit_1_with_milestone` | parametrize 8スタブ（M3 で `bundle` を外した。`cli.STUBS` が 8 本であることも見る） | 戻り値 1、stderr に `未実装` とマイルストーン（`fetch`→`M2`、`judge`→`M4`、`score`→`M6`、`digest`→`M7`、`report`→`M8`） | — |
 | T03-05 | `test_version_flag` | `run("--version")` | `SystemExit(0)`、stdout が `jevfwd 0.1.0` で始まる | — |
 | T03-06 | `test_init_db_creates_and_is_idempotent` | `run("--config", cfg, "init-db")` を2回 | 両方 0。stdout に `schema_version=1`。DB に `schema_version` 1行、トリガー18本 | — |
 | T03-07 | `test_freeze_questions_before_init_db_exit_3` | `init-db` せずに `freeze-questions --version v2` | 3。stderr に `init-db` | `config/questions.v2.json` |
@@ -268,10 +268,11 @@ def cmd_freeze_state(args, settings) -> int:
 | T03-20 | `test_freeze_concurrent_conflict_surfaces_as_already` | `store.freeze.freeze_version` の内部リトライは T01-27 で検証済み。ここでは `freeze_version` を monkeypatch して `("already", sha, U)` を返させる | 戻り値 0、stdout が `already frozen` で始まる | `config/questions.v2.json` |
 | T03-21 | `test_module_entry_point` | `subprocess.run([sys.executable, "-m", "jevfwd.cli", "--version"])` | returncode 0 | — |
 | T03-22 | `test_logging_masks_secrets` | `TYPESAFE_API_KEY=sk-test-XYZ` を env に置き、`--log-level DEBUG init-db` の後に `logging.getLogger().info("key=%s", "sk-test-XYZ")` | `caplog` / stdout に `sk-test-XYZ` が現れず `***` に置換 | — |
+| T03-23 | `test_bundle_once_creates_bundle_with_state` | `init-db` → `freeze-state --version v2` → ほぼ日4件を `events` に入れて `bundle --once`（`bundle.scan_lookback_sec` を1年に広げる。fixture の公表日が既定の3日より古いため） | 0、stdout が `bundles=1 ids=`。`bundles` の `state_json` が valid な state（`issuer.code == "3560"`、主開示が業績予想の修正）、`state_version='v2'`、`state_chars == len(state_json)`。2回目は `bundles=0` | `tdnet_list_2026-09-17.tsv` 9・12・15・16行目 |
 
 ## 9. 完了条件
 
-- T03-01〜T03-22 が通る（`docker compose -f deploy/docker-compose.yml run --rm dev pytest`）
+- T03-01〜T03-23 が通る（`docker compose -f deploy/docker-compose.yml run --rm dev pytest`）
 - `python -m jevfwd.cli --help` と `jevfwd --help`（`dev` イメージは `pip install -e .[dev]` 済み）が同じ出力
 - M3 完了時：`jevfwd bundle --once` が 3.8 のとおり動き、T03-04 が 8 スタブに更新されている
 - `docs/事前宣言.md` に貼る `frozen question_version=v2 …` の行が `freeze-questions` の stdout から得られる（実行は段階2開始時、人が行う）
