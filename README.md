@@ -12,7 +12,7 @@ cp .env.example .env    # APIキーを書く
 
 ## 現状
 
-2026-09-19 Playground検証52回を完了。要件定義書v2・基本設計書・Claude Code向け指示は `docs/` にある。実装は `docs/実装セッション指示.md` の順で進める。
+2026-09-19 Playground検証52回を完了。2026-09-20 に要件定義書v3・基本設計書・ADR（`docs/adr/`）・M1/M3 の詳細設計（`docs/detailed/00〜05`）・state v2 の契約（`docs/contracts/`）が揃った。実装は `docs/実装セッション指示.md` の順（セッション 1a から）で進める。開発・テストは Docker コンテナ内で行い、ホストの Python には依存しない。
 
 ## 使い方（Playgroundで試す段階、検証用スクリプト）
 
