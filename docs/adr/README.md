@@ -54,3 +54,4 @@
 | 018 | 原本PDFはNAS移送後30日でVPSから削除可 | Accepted |
 | 019 | 除外と重要度低下を分け、低下は flags_json で表す | Accepted |
 | 020 | 問い版の凍結は CLI freeze-questions で行い、JSONファイルは不変 | Accepted |
+| 021 | ledger のハッシュ連鎖は明示 id の範囲で日次に計算する | Accepted |

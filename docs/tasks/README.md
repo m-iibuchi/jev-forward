@@ -42,9 +42,12 @@
 | 004 | コストモデルの数値確定（TypeSafe単価、J-Quants、手数料） | open | human | settings.yaml、日次コスト監視 |
 | 005 | 前回予想・前期実績のXBRL抽出範囲の決定 | open | any | F2-3、SUEベースライン |
 | 006 | state v2 JSON Schema の作成と凍結 | open | claude | 05-state 詳細設計 |
-| 007 | 詳細設計 M1（00-conventions, 01-store, 02-config, 03-cli） | open | claude | セッション1（実装） |
+| 007 | 詳細設計 M1（00-共通規約, 01-凍結ログ, 02-設定, 03-CLI） | done | claude | セッション1（実装） |
 | 008 | 詳細設計 M3（04-bundle, 05-state） | open | claude | セッション3（実装） |
 | 009 | kickoff の書き換え（詳細設計参照型） | open | claude | 実装セッション開始 |
 | 010 | 特別気配（寄らず）の判定方法 | open | any | F5-2 |
 | 011 | 東証営業日カレンダーの取得方法 | open | any | digest 2便、採点 |
 | 012 | 9/24以降の答え合わせを検証ログに追記 | open | human | — |
+| 013 | 暫定判定→本判定のときの state の置き場 | open | claude | 05-state構築、07-判定 |
+| 014 | filters の exclude_code_patterns と listed_master の役割分担 | open | any | 04-束ね、09-市場データ |
+| 015 | entry_rules.exit.thesis_broken_categories の値の意味 | open | human | 11-ダイジェスト模擬執行（M7） |
